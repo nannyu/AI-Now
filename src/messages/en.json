@@ -1,0 +1,69 @@
+{
+    "site": {
+        "name": "AI Now",
+        "tagline": "Stories of Chinese AI Entrepreneurs, for the World",
+        "description": "Discover the most compelling stories of Chinese AI startups - innovation, ambition, and the people building the future."
+    },
+    "nav": {
+        "home": "Home",
+        "latest": "Latest",
+        "categories": "Categories",
+        "about": "About",
+        "newsletter": "Newsletter",
+        "search": "Search",
+        "menu": "Menu"
+    },
+    "home": {
+        "featured": "Featured",
+        "editorPicks": "Editor's Picks",
+        "latestStories": "Latest Stories",
+        "readMore": "Read More",
+        "minRead": "{minutes} min read",
+        "viewAll": "View All"
+    },
+    "article": {
+        "by": "By",
+        "published": "Published",
+        "relatedStories": "Related Stories",
+        "shareOn": "Share on",
+        "translationPending": "Translation in progress. Showing original Chinese version.",
+        "notFound": "Article not found",
+        "backHome": "Back to Homepage"
+    },
+    "newsletter": {
+        "title": "Stay in the loop",
+        "subtitle": "Get the best Chinese AI startup stories delivered to your inbox every week.",
+        "placeholder": "Enter your email",
+        "subscribe": "Subscribe",
+        "success": "Check your inbox to confirm your subscription!",
+        "alreadySubscribed": "This email is already subscribed.",
+        "invalidEmail": "Please enter a valid email address.",
+        "unsubscribe": "Unsubscribe"
+    },
+    "search": {
+        "placeholder": "Search stories...",
+        "noResults": "No articles matched your search.",
+        "results": "{count} results for {query}"
+    },
+    "category": {
+        "noArticles": "No articles in this category yet.",
+        "allCategories": "All Categories"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Something went wrong",
+        "retry": "Try again",
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {current} of {total}"
+    },
+    "footer": {
+        "about": "About AI Now",
+        "aboutText": "AI Now is a platform dedicated to showcasing Chinese AI entrepreneurs and their startup journeys to a global audience.",
+        "links": "Quick Links",
+        "social": "Follow Us",
+        "copyright": "© {year} AI Now. All rights reserved.",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service"
+    }
+}

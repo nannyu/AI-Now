@@ -1,0 +1,69 @@
+{
+    "site": {
+        "name": "AI Now",
+        "tagline": "Geschichten chinesischer KI-Unternehmer, fuer die Welt",
+        "description": "Entdecken Sie die faszinierendsten Geschichten chinesischer KI-Startups - Innovation, Ehrgeiz und die Menschen, die die Zukunft gestalten."
+    },
+    "nav": {
+        "home": "Startseite",
+        "latest": "Aktuell",
+        "categories": "Kategorien",
+        "about": "Ueber uns",
+        "newsletter": "Newsletter",
+        "search": "Suche",
+        "menu": "Menue"
+    },
+    "home": {
+        "featured": "Empfohlen",
+        "editorPicks": "Redaktionsempfehlungen",
+        "latestStories": "Neueste Geschichten",
+        "readMore": "Weiterlesen",
+        "minRead": "{minutes} Min. Lesezeit",
+        "viewAll": "Alle anzeigen"
+    },
+    "article": {
+        "by": "Von",
+        "published": "Veroeffentlicht",
+        "relatedStories": "Verwandte Geschichten",
+        "shareOn": "Teilen auf",
+        "translationPending": "Uebersetzung in Bearbeitung. Chinesisches Original wird angezeigt.",
+        "notFound": "Artikel nicht gefunden",
+        "backHome": "Zurueck zur Startseite"
+    },
+    "newsletter": {
+        "title": "Bleiben Sie informiert",
+        "subtitle": "Erhalten Sie woechentlich die besten Geschichten ueber chinesische KI-Startups direkt in Ihr Postfach.",
+        "placeholder": "E-Mail eingeben",
+        "subscribe": "Abonnieren",
+        "success": "Ueberpruefen Sie Ihr Postfach, um Ihr Abonnement zu bestaetigen!",
+        "alreadySubscribed": "Diese E-Mail ist bereits abonniert.",
+        "invalidEmail": "Bitte geben Sie eine gueltige E-Mail-Adresse ein.",
+        "unsubscribe": "Abbestellen"
+    },
+    "search": {
+        "placeholder": "Geschichten suchen...",
+        "noResults": "Keine Artikel gefunden.",
+        "results": "{count} Ergebnisse fuer {query}"
+    },
+    "category": {
+        "noArticles": "Noch keine Artikel in dieser Kategorie.",
+        "allCategories": "Alle Kategorien"
+    },
+    "common": {
+        "loading": "Laden...",
+        "error": "Etwas ist schiefgelaufen",
+        "retry": "Erneut versuchen",
+        "previous": "Zurueck",
+        "next": "Weiter",
+        "page": "Seite {current} von {total}"
+    },
+    "footer": {
+        "about": "Ueber AI Now",
+        "aboutText": "AI Now ist eine Plattform, die sich der Praesentation chinesischer KI-Unternehmer und ihrer Startup-Reisen fuer ein globales Publikum widmet.",
+        "links": "Schnelllinks",
+        "social": "Folgen Sie uns",
+        "copyright": "© {year} AI Now. Alle Rechte vorbehalten.",
+        "privacy": "Datenschutz",
+        "terms": "Nutzungsbedingungen"
+    }
+}
