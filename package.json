@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "wechat-rss:dev": "bash scripts/wechat-rss-dev.sh",
+    "wechat-rss:sync-env": "bash scripts/sync-wechat-rss-env.sh",
+    "wechat-rss:setup": "cd services/wechat-rss-lite && uv sync --extra api"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",

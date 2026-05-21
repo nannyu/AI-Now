@@ -19,7 +19,14 @@
         "latestStories": "Neueste Geschichten",
         "readMore": "Weiterlesen",
         "minRead": "{minutes} Min. Lesezeit",
-        "viewAll": "Alle anzeigen"
+        "viewAll": "Alle anzeigen",
+        "noPublishedArticles": "Noch keine veröffentlichten Artikel. Nach der Veröffentlichung erscheinen sie hier.",
+        "ticker": {
+            "b1": "DeepSeek löst globale Verschiebungen in der KI-Chiparchitektur aus",
+            "b2": "MiniMax schließt Serie-C-Finanzierung ab, um Abab-APIs zu erweitern",
+            "b3": "Zhipu AI GLM-4 erobert Cloud-Workloads für Unternehmen",
+            "b4": "Moonshot AI führt Kimi mit extrem langem Kontext weltweit ein"
+        }
     },
     "article": {
         "by": "Von",

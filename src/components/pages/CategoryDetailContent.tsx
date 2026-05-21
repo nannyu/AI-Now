@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import type { Article, Category } from '@/lib/mock-data';
 import { Clock, Calendar, ChevronRight } from 'lucide-react';
@@ -13,68 +13,78 @@ interface Props {
 export function CategoryDetailContent({ category, articles }: Props) {
     const t = useTranslations('category');
     const home = useTranslations('home');
+    const locale = useLocale();
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
+        return new Date(dateStr).toLocaleDateString(
+            locale === 'zh' ? 'zh-CN' : locale === 'de' ? 'de-DE' : 'en-US',
+            {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            }
+        );
     };
 
     return (
-        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-6 md:py-10">
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm text-neutral-500 mb-6">
-                <Link href="/" className="hover:text-brand-600 transition-colors">
-                    Home
+            <nav className="flex items-center gap-2 text-[10px] font-sans-intel text-vintage-text/60 uppercase tracking-wider mb-6">
+                <Link href="/" className="hover:text-vintage-accent transition-colors">
+                    {locale === 'zh' ? '首页' : 'Home'}
                 </Link>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
                 <Link
                     href="/categories"
-                    className="hover:text-brand-600 transition-colors"
+                    className="hover:text-vintage-accent transition-colors"
                 >
                     {t('allCategories')}
                 </Link>
-                <ChevronRight className="w-3.5 h-3.5" />
-                <span className="text-neutral-900 font-medium">{category.name}</span>
+                <ChevronRight className="w-3 h-3" />
+                <span className="text-vintage-text font-bold">{category.name}</span>
             </nav>
 
-            <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-10">
-                {category.name}
-            </h1>
+            <div className="border-b-2 border-vintage-accent pb-3 mb-8">
+                <h1 className="font-cinzel text-xl md:text-3xl font-black text-vintage-accent uppercase tracking-wider">
+                    {category.name}
+                </h1>
+            </div>
 
             {articles.length === 0 ? (
-                <p className="text-neutral-500 text-lg">{t('noArticles')}</p>
+                <p className="font-serif-vintage text-vintage-text/60 text-base">{t('noArticles')}</p>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {articles.map((article) => (
                         <Link
                             key={article.id}
                             href={`/article/${article.slug}`}
-                            className="group"
+                            className="group flex flex-col p-4 border border-vintage-border bg-vintage-bg hover:bg-vintage-panel/20 transition-all duration-300 rounded-none justify-between h-full focus:outline-none"
                         >
-                            <article>
-                                <div className="aspect-[16/9] rounded-xl overflow-hidden mb-4">
+                            <div>
+                                <div className="w-full aspect-[16/10] overflow-hidden rounded-none border border-vintage-border/30 mb-3.5">
                                     <img
                                         src={article.coverImage}
                                         alt={article.title}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
                                     />
                                 </div>
 
-                                <h2 className="text-lg font-semibold text-neutral-900 group-hover:text-brand-600 transition-colors line-clamp-2 mb-2">
+                                <span className="text-[9px] font-mono-raw font-extrabold uppercase tracking-widest text-vintage-accent/70 block mb-1">
+                                    {article.categoryLabel}
+                                </span>
+
+                                <h2 className="font-serif-vintage text-base font-bold text-vintage-text group-hover:text-vintage-accent transition-colors duration-200 line-clamp-2 leading-snug mb-2">
                                     {article.title}
                                 </h2>
 
-                                <p className="text-sm text-neutral-600 line-clamp-2 mb-3">
+                                <p className="text-[11px] text-vintage-text/75 line-clamp-3 leading-relaxed mb-4 font-sans-intel text-justify">
                                     {article.summary}
                                 </p>
+                            </div>
 
-                                <div className="flex items-center gap-3 text-xs text-neutral-500">
-                                    <span className="font-medium text-neutral-700">
-                                        {article.author}
-                                    </span>
+                            <div className="flex items-center justify-between border-t border-vintage-border/40 pt-2 text-[10px] text-vintage-text/60 font-mono-raw">
+                                <span>{article.author}</span>
+                                <div className="flex items-center gap-3">
                                     <span className="flex items-center gap-1">
                                         <Calendar className="w-3 h-3" />
                                         {formatDate(article.publishDate)}
@@ -84,7 +94,7 @@ export function CategoryDetailContent({ category, articles }: Props) {
                                         {home('minRead', { minutes: article.readingMinutes })}
                                     </span>
                                 </div>
-                            </article>
+                            </div>
                         </Link>
                     ))}
                 </div>

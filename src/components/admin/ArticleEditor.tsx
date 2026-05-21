@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
+import { proxyWechatImages, publicImageProxyUrl } from '@/lib/image-proxy';
+import { categories, getLocalizedCategoryName } from '@/lib/mock-data';
 
 interface Article {
     id: number;
+    slug?: string;
     title: string;
     summary: string;
     body: string;
@@ -41,7 +44,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
     h2, h3, h4 { font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.25; }
   </style>
 </head>
-<body>${form.body}</body>
+<body>${proxyWechatImages(form.body)}</body>
 </html>`;
     }, [form.body]);
 
@@ -52,51 +55,51 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
     return (
         <div>
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={onCancel}
                         className="p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <h1 className="text-xl font-bold text-neutral-900">Edit Article</h1>
+                    <h1 className="text-xl font-bold text-neutral-900">编辑文章</h1>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <button
                         onClick={() => setShowPreview(!showPreview)}
                         className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
                     >
                         <Eye className="w-4 h-4" />
-                        {showPreview ? 'Edit' : 'Preview'}
+                        {showPreview ? '继续编辑' : '预览'}
                     </button>
                     <button
                         onClick={() => onSave(form)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
                     >
                         <Save className="w-4 h-4" />
-                        Save
+                        保存
                     </button>
                 </div>
             </div>
 
             {showPreview ? (
                 /* Preview mode */
-                <div className="bg-white rounded-xl border border-neutral-200 p-8">
+                <div className="bg-white rounded-xl border border-neutral-200 p-4 sm:p-6 lg:p-8 min-w-0">
                     {form.cover_image && (
                         <div className="aspect-[16/9] rounded-xl overflow-hidden mb-6 max-w-3xl">
-                            <img src={form.cover_image} alt="" className="w-full h-full object-cover" />
+                            <img src={publicImageProxyUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
                         </div>
                     )}
-                    <div className="max-w-[680px]">
+                    <div className="w-full max-w-[680px] min-w-0">
                         <h1 className="text-3xl font-bold text-neutral-900 mb-3">{form.title}</h1>
                         <p className="text-lg text-neutral-600 mb-4">{form.summary}</p>
                         <div className="flex items-center gap-3 text-sm text-neutral-500 mb-8 pb-6 border-b border-neutral-200">
                             <span className="font-medium text-neutral-700">{form.author}</span>
-                            {form.category && <span>· {form.category}</span>}
+                            {form.category && <span>· {categoryDisplayName(form.category)}</span>}
                         </div>
                         <iframe
-                            title="Article preview"
+                            title="文章预览"
                             sandbox=""
                             srcDoc={previewSrcDoc}
                             className="w-full min-h-[520px] border-0"
@@ -105,10 +108,10 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                 </div>
             ) : (
                 /* Edit mode */
-                <div className="space-y-6 bg-white rounded-xl border border-neutral-200 p-6">
+                <div className="space-y-6 bg-white rounded-xl border border-neutral-200 p-4 sm:p-6 min-w-0">
                     {/* Title */}
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Title</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">标题</label>
                         <input
                             type="text"
                             value={form.title}
@@ -119,7 +122,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
 
                     {/* Summary */}
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Summary</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">摘要</label>
                         <textarea
                             value={form.summary}
                             onChange={(e) => handleChange('summary', e.target.value)}
@@ -131,7 +134,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                     {/* Two columns */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Author</label>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">作者</label>
                             <input
                                 type="text"
                                 value={form.author}
@@ -140,19 +143,24 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-neutral-700 mb-1">Category</label>
-                            <input
-                                type="text"
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">分类</label>
+                            <select
                                 value={form.category}
                                 onChange={(e) => handleChange('category', e.target.value)}
                                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            />
+                            >
+                                {categories.map((category) => (
+                                    <option key={category.slug} value={category.slug}>
+                                        {getLocalizedCategoryName(category, 'zh')}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
                     {/* Cover Image */}
                     <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Cover Image URL</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">封面图片 URL</label>
                         <input
                             type="text"
                             value={form.cover_image}
@@ -161,7 +169,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                         />
                         {form.cover_image && (
                             <div className="mt-2 w-48 aspect-[16/9] rounded-lg overflow-hidden bg-neutral-100">
-                                <img src={form.cover_image} alt="" className="w-full h-full object-cover" />
+                                <img src={publicImageProxyUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
                             </div>
                         )}
                     </div>
@@ -175,24 +183,29 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                                 onChange={(e) => handleChange('is_featured', e.target.checked ? 1 : 0)}
                                 className="w-4 h-4 text-brand-600 border-neutral-300 rounded focus:ring-brand-500"
                             />
-                            <span className="text-sm font-medium text-neutral-700">Featured article</span>
+                            <span className="text-sm font-medium text-neutral-700">设为首页重点文章</span>
                         </label>
                     </div>
 
                     {/* Body (HTML) */}
                     <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1">
-                            Body (HTML)
+                            正文（HTML）
                         </label>
                         <textarea
                             value={form.body}
                             onChange={(e) => handleChange('body', e.target.value)}
                             rows={20}
-                            className="w-full px-4 py-3 border border-neutral-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 resize-y"
+                            className="w-full max-w-full px-4 py-3 border border-neutral-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 resize-y"
                         />
                     </div>
                 </div>
             )}
         </div>
     );
+}
+
+function categoryDisplayName(value: string) {
+    const category = categories.find((item) => item.slug === value || item.name === value);
+    return category ? getLocalizedCategoryName(category, 'zh') : value;
 }

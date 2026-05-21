@@ -30,6 +30,11 @@ yarn-error.log*
 # database
 /data/
 
+# wechat-rss-lite local env and db
+/services/wechat-rss-lite/.env
+/services/wechat-rss-lite/.venv/
+/services/wechat-rss-lite/*.db
+
 # vercel
 .vercel
 
@@ -43,3 +48,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# graphify generated output
+/graphify-out/

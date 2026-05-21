@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
         if (!username || !password) {
             return NextResponse.json(
-                { error: 'Username and password are required' },
+                { error: '请输入用户名和密码' },
                 { status: 400 }
             );
         }
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
         if (!success) {
             return NextResponse.json(
-                { error: 'Invalid credentials' },
+                { error: '用户名或密码不正确' },
                 { status: 401 }
             );
         }
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: '服务器内部错误' },
             { status: 500 }
         );
     }

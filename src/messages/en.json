@@ -19,7 +19,14 @@
         "latestStories": "Latest Stories",
         "readMore": "Read More",
         "minRead": "{minutes} min read",
-        "viewAll": "View All"
+        "viewAll": "View All",
+        "noPublishedArticles": "No published articles yet. Content will appear here after you publish.",
+        "ticker": {
+            "b1": "DeepSeek sparks global AI chip architecture shifts",
+            "b2": "MiniMax raises Series C expanding Abab APIs",
+            "b3": "Zhipu AI GLM-4 captures enterprise cloud workloads",
+            "b4": "Moonshot AI launches Kimi-long-context globally"
+        }
     },
     "article": {
         "by": "By",

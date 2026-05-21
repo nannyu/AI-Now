@@ -8,122 +8,113 @@ export function Footer() {
     const nav = useTranslations('nav');
 
     return (
-        <footer className="bg-neutral-900 text-neutral-300">
-            <div className="max-w-wide mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                    {/* Brand & Description */}
-                    <div className="md:col-span-1">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">AI</span>
-                            </div>
-                            <span className="text-xl font-bold text-white tracking-tight">
-                                Now
-                            </span>
-                        </div>
-                        <p className="text-sm text-neutral-400 leading-relaxed">
-                            {t('aboutText')}
-                        </p>
+        <footer className="w-full bg-vintage-bg text-vintage-text px-4 md:px-8 max-w-[1440px] mx-auto mt-auto">
+            
+            {/* Top Border Divider */}
+            <div className="double-border-top pt-8 pb-10 border-vintage-accent/40 mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                {/* Brand / Editor Intro */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-cinzel font-black uppercase text-vintage-accent tracking-widest">
+                            AI NOW ｜ AI闹
+                        </span>
                     </div>
-
-                    {/* Quick Links */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-                            {t('links')}
-                        </h3>
-                        <ul className="space-y-3">
-                            <li>
-                                <Link
-                                    href="/latest"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    {nav('latest')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/categories"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    {nav('categories')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/about"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    {nav('about')}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/newsletter"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    {nav('newsletter')}
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Connect */}
-                    <div>
-                        <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-                            {t('social')}
-                        </h3>
-                        <ul className="space-y-3">
-                            <li>
-                                <a
-                                    href="https://twitter.com/ainow"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    Twitter / X
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="https://linkedin.com/company/ainow"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    LinkedIn
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="/api/feed/en"
-                                    className="text-sm text-neutral-400 hover:text-white transition-colors"
-                                >
-                                    RSS Feed
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <p className="text-xs text-vintage-text/75 leading-relaxed font-sans-intel text-justify">
+                        {t('aboutText')}
+                    </p>
                 </div>
 
-                {/* Bottom bar */}
-                <div className="mt-12 pt-8 border-t border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <p className="text-xs text-neutral-500">
-                        {t('copyright', { year: new Date().getFullYear() })}
-                    </p>
-                    <div className="flex items-center gap-6">
-                        <Link
-                            href="/about"
-                            className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                        >
-                            {t('privacy')}
-                        </Link>
-                        <Link
-                            href="/about"
-                            className="text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                        >
-                            {t('terms')}
-                        </Link>
-                    </div>
+                {/* Navigation Links */}
+                <div className="space-y-3 font-sans-intel">
+                    <h3 className="text-xs font-mono-raw font-bold uppercase tracking-wider text-vintage-accent">
+                        {t('links')}
+                    </h3>
+                    <ul className="grid grid-cols-2 gap-2 text-xs">
+                        <li>
+                            <Link
+                                href="/latest"
+                                className="text-vintage-text/70 hover:text-vintage-accent transition-colors font-semibold"
+                            >
+                                {nav('latest')}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/categories"
+                                className="text-vintage-text/70 hover:text-vintage-accent transition-colors font-semibold"
+                            >
+                                {nav('categories')}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/about"
+                                className="text-vintage-text/70 hover:text-vintage-accent transition-colors font-semibold"
+                            >
+                                {nav('about')}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/newsletter"
+                                className="text-vintage-text/70 hover:text-vintage-accent transition-colors font-semibold"
+                            >
+                                {nav('newsletter')}
+                            </Link>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* Social Channels & Links */}
+                <div className="space-y-3 font-sans-intel">
+                    <h3 className="text-xs font-mono-raw font-bold uppercase tracking-wider text-vintage-accent">
+                        {t('social')}
+                    </h3>
+                    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-vintage-text/70">
+                        <li>
+                            <a
+                                href="https://twitter.com/ainow"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-vintage-accent font-semibold transition-colors"
+                            >
+                                Twitter / X
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="https://linkedin.com/company/ainow"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-vintage-accent font-semibold transition-colors"
+                            >
+                                LinkedIn
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            {/* Bottom copyright broadsheet bar */}
+            <div className="border-t border-vintage-border py-4 flex flex-col md:flex-row items-center justify-between text-[11px] text-vintage-text/50 font-mono-raw tracking-wide gap-2">
+                <div>
+                    {t('copyright', { year: new Date().getFullYear() })}
+                </div>
+                <div className="flex items-center gap-4">
+                    <Link
+                        href="/about"
+                        className="hover:text-vintage-accent transition-colors"
+                    >
+                        {t('privacy')}
+                    </Link>
+                    <span>•</span>
+                    <Link
+                        href="/about"
+                        className="hover:text-vintage-accent transition-colors"
+                    >
+                        {t('terms')}
+                    </Link>
                 </div>
             </div>
         </footer>

@@ -27,10 +27,10 @@ export default function AdminLoginPage() {
                 router.push('/admin');
             } else {
                 const data = await res.json();
-                setError(data.error || 'Login failed');
+                setError(data.error || '登录失败');
             }
         } catch {
-            setError('Network error');
+            setError('网络错误');
         } finally {
             setLoading(false);
         }
@@ -43,14 +43,14 @@ export default function AdminLoginPage() {
                     <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-600 rounded-xl mb-4">
                         <Lock className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-neutral-900">AI Now Admin</h1>
-                    <p className="text-sm text-neutral-500 mt-1">Sign in to manage content</p>
+                    <h1 className="text-2xl font-bold text-neutral-900">AI Now 后台</h1>
+                    <p className="text-sm text-neutral-500 mt-1">登录后管理网站内容</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1">
-                            Username
+                            用户名
                         </label>
                         <input
                             type="text"
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
 
                     <div>
                         <label className="block text-sm font-medium text-neutral-700 mb-1">
-                            Password
+                            密码
                         </label>
                         <input
                             type="password"
@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
                         disabled={loading}
                         className="w-full py-2.5 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
                     >
-                        {loading ? 'Signing in...' : 'Sign In'}
+                        {loading ? '正在登录...' : '登录'}
                     </button>
                 </form>
 

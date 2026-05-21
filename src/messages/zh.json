@@ -19,7 +19,14 @@
         "latestStories": "最新报道",
         "readMore": "阅读全文",
         "minRead": "{minutes} 分钟阅读",
-        "viewAll": "查看全部"
+        "viewAll": "查看全部",
+        "noPublishedArticles": "暂无已发布文章。发布内容后将显示在这里。",
+        "ticker": {
+            "b1": "DeepSeek 引发全球 AI 芯片架构变革",
+            "b2": "MiniMax 完成 C 轮融资，加速拓展 Abab API",
+            "b3": "智谱 AI GLM-4 占领企业级云端工作负载",
+            "b4": "月之暗面全球推出 Kimi 超长上下文模型"
+        }
     },
     "article": {
         "by": "作者",

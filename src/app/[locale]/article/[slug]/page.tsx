@@ -1,4 +1,5 @@
-import { articles, getRelatedArticles } from '@/lib/mock-data';
+import { getDbArticleBySlug, getRelatedDbArticles } from '@/lib/db-articles';
+import { getSession } from '@/lib/auth';
 import { ArticleContent } from '@/components/article/ArticleContent';
 import { RelatedArticles } from '@/components/article/RelatedArticles';
 import { notFound } from 'next/navigation';
@@ -9,18 +10,25 @@ interface Props {
 
 export default async function ArticlePage({ params }: Props) {
     const { slug } = await params;
-    const article = articles.find((a) => a.slug === slug);
+    const article = getDbArticleBySlug(slug);
 
     if (!article) {
         notFound();
     }
 
-    const related = getRelatedArticles(article, 4);
+    if (article.dbStatus !== 'published') {
+        const session = await getSession();
+        if (!session) {
+            notFound();
+        }
+    }
+
+    const related = getRelatedDbArticles(article, 4);
 
     return (
-        <>
+        <div className="bg-vintage-bg">
             <ArticleContent article={article} />
             <RelatedArticles articles={related} />
-        </>
+        </div>
     );
 }

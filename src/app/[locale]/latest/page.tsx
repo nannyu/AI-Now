@@ -1,7 +1,6 @@
-import { getLatestArticles } from '@/lib/mock-data';
+import { getLatestDbArticles } from '@/lib/db-articles';
 import { LatestPageContent } from '@/components/pages/LatestPageContent';
 
-export default function LatestPage() {
-    const articles = getLatestArticles(10);
-    return <LatestPageContent articles={articles} />;
+export default async function LatestPage() {
+    return <LatestPageContent articles={getLatestDbArticles(20)} />;
 }

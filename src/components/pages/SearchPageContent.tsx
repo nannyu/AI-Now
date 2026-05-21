@@ -1,14 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { articles } from '@/lib/mock-data';
-import { Search, Clock } from 'lucide-react';
+import type { Article } from '@/lib/mock-data';
+import { Search, Clock, Calendar } from 'lucide-react';
 
-export function SearchPageContent() {
+interface Props {
+    articles: Article[];
+}
+
+export function SearchPageContent({ articles }: Props) {
     const t = useTranslations('search');
     const home = useTranslations('home');
+    const locale = useLocale();
     const [query, setQuery] = useState('');
 
     const results =
@@ -20,24 +25,35 @@ export function SearchPageContent() {
             )
             : [];
 
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString(
+            locale === 'zh' ? 'zh-CN' : locale === 'de' ? 'de-DE' : 'en-US',
+            {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+            }
+        );
+    };
+
     return (
-        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-6 md:py-10 bg-vintage-bg">
             {/* Search input */}
             <div className="max-w-2xl mx-auto mb-12">
                 <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-vintage-text/45" />
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('placeholder')}
                         autoFocus
-                        className="w-full pl-12 pr-4 py-4 text-lg border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                        className="w-full pl-12 pr-4 py-3 bg-vintage-bg border border-vintage-border focus:outline-none focus:border-vintage-accent text-base rounded-none text-vintage-text placeholder-vintage-text/40 font-serif-vintage"
                     />
                 </div>
 
                 {query.length >= 2 && (
-                    <p className="mt-4 text-sm text-neutral-500">
+                    <p className="mt-4 text-[10px] font-mono-raw text-vintage-text/60 uppercase tracking-wider">
                         {t('results', { count: results.length, query })}
                     </p>
                 )}
@@ -46,12 +62,12 @@ export function SearchPageContent() {
             {/* Results */}
             {query.length >= 2 && results.length === 0 && (
                 <div className="text-center py-16">
-                    <p className="text-lg text-neutral-500">{t('noResults')}</p>
+                    <p className="font-serif-vintage text-vintage-text/60 text-base">{t('noResults')}</p>
                 </div>
             )}
 
             {results.length > 0 && (
-                <div className="space-y-0 divide-y divide-neutral-200 max-w-3xl mx-auto">
+                <div className="space-y-0 divide-y divide-vintage-border max-w-3xl mx-auto">
                     {results.map((article) => (
                         <Link
                             key={article.id}
@@ -59,19 +75,23 @@ export function SearchPageContent() {
                             className="group block py-6 first:pt-0"
                         >
                             <article>
-                                <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
-                                    {article.categories[0]?.name}
+                                <span className="text-[9px] font-mono-raw font-extrabold uppercase tracking-widest text-vintage-accent mb-1.5 block">
+                                    {article.categoryLabel}
                                 </span>
-                                <h2 className="text-lg font-semibold text-neutral-900 group-hover:text-brand-600 transition-colors mt-1 mb-1">
+                                <h2 className="font-serif-vintage text-base md:text-lg font-bold text-vintage-text group-hover:text-vintage-accent transition-colors duration-200 mt-1 mb-1.5 leading-snug">
                                     {article.title}
                                 </h2>
-                                <p className="text-sm text-neutral-600 line-clamp-2 mb-2">
+                                <p className="text-xs text-vintage-text/75 line-clamp-2 mb-2.5 font-sans-intel text-justify">
                                     {article.summary}
                                 </p>
-                                <div className="flex items-center gap-3 text-xs text-neutral-500">
-                                    <span>{article.author}</span>
+                                <div className="flex items-center gap-4 text-[10px] font-mono-raw text-vintage-text/60">
+                                    <span className="font-bold text-vintage-text">{article.author}</span>
                                     <span className="flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
+                                        <Calendar className="w-3.5 h-3.5" />
+                                        {formatDate(article.publishDate)}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                        <Clock className="w-3.5 h-3.5" />
                                         {home('minRead', { minutes: article.readingMinutes })}
                                     </span>
                                 </div>

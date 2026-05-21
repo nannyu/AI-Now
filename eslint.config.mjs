@@ -2,10 +2,12 @@ import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
 const eslintConfig = [
+    {
+        ignores: ['.next/**', 'next-env.d.ts', 'node_modules/**', 'services/wechat-rss-lite/**'],
+    },
     ...nextVitals,
     ...nextTypescript,
     {
-        ignores: ['.next/**', 'next-env.d.ts', 'node_modules/**'],
         rules: {
             '@next/next/no-html-link-for-pages': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',

@@ -1,4 +1,5 @@
 import { sanitizeArticleHtml } from './html-sanitizer';
+import { normalizeEscapedWhitespace } from './text-normalize';
 
 /**
  * Converts raw WeChat article HTML into clean, website-adapted content.
@@ -9,7 +10,7 @@ import { sanitizeArticleHtml } from './html-sanitizer';
 export function convertWechatContent(rawHtml: string): string {
     if (!rawHtml) return '';
 
-    let html = rawHtml;
+    let html = normalizeEscapedWhitespace(rawHtml);
 
     // Remove script and style tags
     html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
@@ -87,7 +88,7 @@ export function convertWechatContent(rawHtml: string): string {
  */
 export function extractSummary(html: string, maxLength: number = 200): string {
     // Strip all HTML tags
-    const text = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    const text = normalizeEscapedWhitespace(html).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).replace(/\s+\S*$/, '') + '...';
 }

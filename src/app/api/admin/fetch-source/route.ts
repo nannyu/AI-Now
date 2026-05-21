@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import { convertWechatContent, extractSummary, extractCoverImage } from '@/lib/content-converter';
 import { validateFeedUrl } from '@/lib/url-security';
+import { isWechatRssFeedUrl, wechatRssAuthHeaders } from '@/lib/wechat-rss';
+import { insertArticleDrafts } from '@/lib/article-ingest';
 
 /**
  * Fetches articles from a wechat-rss-lite source and stores them in the database.
@@ -35,8 +36,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch RSS feed from wechat-rss-lite
+        const headers: HeadersInit = { 'User-Agent': 'AI-Now-Crawler/1.0' };
+        if (isWechatRssFeedUrl(feedUrl.url)) {
+            Object.assign(headers, wechatRssAuthHeaders());
+        }
+
         const response = await fetch(feedUrl.url, {
-            headers: { 'User-Agent': 'AI-Now-Crawler/1.0' },
+            headers,
             signal: AbortSignal.timeout(30000),
         });
 
@@ -49,37 +55,19 @@ export async function POST(request: NextRequest) {
         // Parse RSS/XML feed
         const articles = parseRssFeed(feedText);
 
-        let ingested = 0;
-        let skipped = 0;
-
-        const insertStmt = db.prepare(`
-      INSERT OR IGNORE INTO articles (source_id, source_url, title, summary, body, author, cover_image, status, publish_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?)
-    `);
-
-        for (const article of articles) {
-            // Convert WeChat content to clean HTML
-            const cleanBody = convertWechatContent(article.content);
-            const summary = article.description || extractSummary(cleanBody);
-            const coverImage = article.image || extractCoverImage(cleanBody);
-
-            const result = insertStmt.run(
-                source_id,
-                article.link,
-                article.title,
-                summary,
-                cleanBody,
-                article.author || source.name,
-                coverImage,
-                article.pubDate || new Date().toISOString()
-            );
-
-            if (result.changes > 0) {
-                ingested++;
-            } else {
-                skipped++;
-            }
-        }
+        const { ingested, skipped } = insertArticleDrafts(
+            db,
+            articles.map((article) => ({
+                sourceId: source_id,
+                sourceUrl: article.link,
+                title: article.title,
+                summary: article.description,
+                body: article.content,
+                author: article.author || source.name,
+                coverImage: article.image,
+                publishDate: article.pubDate,
+            }))
+        );
 
         // Update last fetched time
         db.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(source_id);

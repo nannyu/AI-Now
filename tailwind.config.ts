@@ -11,6 +11,10 @@ const config: Config = {
                 sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
                 serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
                 mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                cinzel: ['Cinzel', 'serif'],
+                'serif-vintage': ['Playfair Display', 'Georgia', 'serif'],
+                'sans-intel': ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+                'mono-raw': ['Fira Code', 'monospace'],
             },
             colors: {
                 brand: {
@@ -39,6 +43,14 @@ const config: Config = {
                     900: '#171717',
                     950: '#0a0a0a',
                 },
+                vintage: {
+                    bg: '#FAF8F5',
+                    text: '#1C1C1A',
+                    accent: '#1B3E2F',
+                    border: '#D4C9BA',
+                    'border-dark': '#C5BBAE',
+                    panel: '#F2EDE4',
+                }
             },
             fontSize: {
                 'xs': ['0.75rem', { lineHeight: '1rem' }],

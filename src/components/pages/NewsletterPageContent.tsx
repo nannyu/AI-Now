@@ -21,48 +21,42 @@ export function NewsletterPageContent() {
     };
 
     return (
-        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-            <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-10 md:py-16 bg-vintage-bg">
+            <div className="max-w-xl mx-auto border border-dashed border-vintage-accent/60 bg-vintage-accent/[0.02] p-8 md:p-12 text-center rounded-none">
                 {/* Icon */}
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-100 rounded-2xl mb-6">
-                    <Mail className="w-8 h-8 text-brand-600" />
+                <div className="inline-flex items-center justify-center mb-6 text-vintage-accent">
+                    <Mail className="w-9 h-9" />
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+                <h1 className="font-cinzel text-xl md:text-3xl font-black text-vintage-accent uppercase tracking-widest mb-4">
                     {t('title')}
                 </h1>
 
-                <p className="text-lg text-neutral-600 mb-10">
+                <p className="font-serif-vintage text-sm md:text-base text-vintage-text/85 mb-8 leading-relaxed">
                     {t('subtitle')}
                 </p>
 
                 {/* Features */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-                    <div className="flex flex-col items-center gap-2 p-4">
-                        <Sparkles className="w-5 h-5 text-brand-500" />
-                        <span className="text-sm font-medium text-neutral-700">
-                            Curated Stories
-                        </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 border-t border-b border-vintage-border py-4 font-mono-raw text-[10px] text-vintage-text/70 uppercase tracking-widest">
+                    <div className="flex flex-col items-center gap-1.5 justify-center">
+                        <Sparkles className="w-4 h-4 text-vintage-accent" />
+                        <span>Curated Stories</span>
                     </div>
-                    <div className="flex flex-col items-center gap-2 p-4">
-                        <Globe className="w-5 h-5 text-brand-500" />
-                        <span className="text-sm font-medium text-neutral-700">
-                            3 Languages
-                        </span>
+                    <div className="flex flex-col items-center gap-1.5 justify-center border-y sm:border-y-0 sm:border-x border-vintage-border/50 py-2 sm:py-0">
+                        <Globe className="w-4 h-4 text-vintage-accent" />
+                        <span>3 Languages</span>
                     </div>
-                    <div className="flex flex-col items-center gap-2 p-4">
-                        <Clock className="w-5 h-5 text-brand-500" />
-                        <span className="text-sm font-medium text-neutral-700">
-                            Weekly Digest
-                        </span>
+                    <div className="flex flex-col items-center gap-1.5 justify-center">
+                        <Clock className="w-4 h-4 text-vintage-accent" />
+                        <span>Weekly Digest</span>
                     </div>
                 </div>
 
                 {/* Form */}
                 {status === 'success' ? (
-                    <div className="flex items-center justify-center gap-3 p-6 bg-green-50 border border-green-200 rounded-xl">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                        <span className="text-green-800 font-medium">{t('success')}</span>
+                    <div className="flex items-center justify-center gap-3 p-4 bg-vintage-accent/5 border border-vintage-accent text-vintage-accent text-xs font-sans-intel rounded-none">
+                        <CheckCircle className="w-5 h-5 text-vintage-accent shrink-0" />
+                        <span className="font-bold">{t('success')}</span>
                     </div>
                 ) : (
                     <form
@@ -78,17 +72,17 @@ export function NewsletterPageContent() {
                                     setStatus('idle');
                                 }}
                                 placeholder={t('placeholder')}
-                                className="w-full px-5 py-3.5 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                                className="w-full bg-vintage-bg border border-vintage-border focus:outline-none focus:border-vintage-accent text-xs px-4 py-3 rounded-none text-vintage-text placeholder-vintage-text/40 font-sans-intel"
                             />
                             {status === 'error' && (
-                                <p className="mt-2 text-sm text-red-600 text-left">
+                                <p className="mt-2 text-xs text-red-700 text-left font-sans-intel">
                                     {t('invalidEmail')}
                                 </p>
                             )}
                         </div>
                         <button
                             type="submit"
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shrink-0"
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-vintage-accent hover:bg-vintage-accent/90 text-vintage-bg font-mono-raw text-xs tracking-widest uppercase font-bold rounded-none transition-colors shrink-0"
                         >
                             {t('subscribe')}
                             <ArrowRight className="w-4 h-4" />

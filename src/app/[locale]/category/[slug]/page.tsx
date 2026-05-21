@@ -1,4 +1,5 @@
-import { categories, getArticlesByCategory } from '@/lib/mock-data';
+import { getDbArticlesByCategory } from '@/lib/db-articles';
+import { categoryFromValue, localizedCategories } from '@/lib/article-categories';
 import { CategoryDetailContent } from '@/components/pages/CategoryDetailContent';
 import { notFound } from 'next/navigation';
 
@@ -7,14 +8,19 @@ interface Props {
 }
 
 export default async function CategoryPage({ params }: Props) {
-    const { slug } = await params;
-    const category = categories.find((c) => c.slug === slug);
+    const { slug, locale } = await params;
+    const categories = localizedCategories(locale);
+    const resolvedCategory = categoryFromValue(slug);
+    const category = categories.find((c) => c.slug === resolvedCategory.slug);
 
     if (!category) {
         notFound();
     }
 
-    const articles = getArticlesByCategory(slug);
-
-    return <CategoryDetailContent category={category} articles={articles} />;
+    return (
+        <CategoryDetailContent
+            category={category}
+            articles={getDbArticlesByCategory(slug)}
+        />
+    );
 }

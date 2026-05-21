@@ -19,27 +19,29 @@ export function CategoriesPageContent({ categories }: Props) {
     const t = useTranslations('category');
 
     return (
-        <div className="max-w-content mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-            <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-10">
-                {t('allCategories')}
-            </h1>
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-6 md:py-10">
+            <div className="border-b-2 border-vintage-accent pb-3 mb-8">
+                <h1 className="font-cinzel text-xl md:text-3xl font-black text-vintage-accent uppercase tracking-wider">
+                    {t('allCategories')}
+                </h1>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categories.map((category) => (
                     <Link
                         key={category.id}
                         href={`/category/${category.slug}`}
-                        className="group flex items-center justify-between p-6 rounded-xl border border-neutral-200 hover:border-brand-200 hover:bg-brand-50/30 transition-all"
+                        className="group flex items-center justify-between p-6 rounded-none border border-vintage-border bg-vintage-bg hover:bg-vintage-panel/20 transition-all duration-300"
                     >
                         <div>
-                            <h2 className="text-lg font-semibold text-neutral-900 group-hover:text-brand-600 transition-colors">
+                            <h2 className="font-serif-vintage text-base font-bold text-vintage-text group-hover:text-vintage-accent transition-colors leading-tight">
                                 {category.name}
                             </h2>
-                            <p className="text-sm text-neutral-500 mt-1">
-                                {category.articleCount} articles
+                            <p className="font-mono-raw text-[10px] text-vintage-text/60 mt-1 uppercase">
+                                {category.articleCount} {category.articleCount === 1 ? 'article' : 'articles'}
                             </p>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-neutral-400 group-hover:text-brand-600 transition-colors" />
+                        <ArrowRight className="w-4 h-4 text-vintage-text/40 group-hover:text-vintage-accent transition-colors duration-200" />
                     </Link>
                 ))}
             </div>

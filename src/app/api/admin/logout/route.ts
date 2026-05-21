@@ -8,6 +8,6 @@ export async function POST(request: NextRequest) {
         await signOut();
         return NextResponse.json({ success: true });
     } catch {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 }

@@ -31,6 +31,11 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb();
+    const existing = db.prepare('SELECT id, name, feed_url, is_active FROM rss_sources WHERE feed_url = ?').get(feedUrl.url);
+    if (existing) {
+        return NextResponse.json({ error: 'RSS source already exists', source: existing }, { status: 409 });
+    }
+
     const result = db.prepare('INSERT INTO rss_sources (name, feed_url) VALUES (?, ?)').run(name, feedUrl.url);
 
     return NextResponse.json({ id: result.lastInsertRowid, name, feed_url: feedUrl.url, is_active: 1 });

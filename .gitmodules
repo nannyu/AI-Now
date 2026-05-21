@@ -1,0 +1,3 @@
+[submodule "services/wechat-rss-lite"]
+	path = services/wechat-rss-lite
+	url = https://github.com/nannyu/wechat-rss-lite.git

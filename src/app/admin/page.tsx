@@ -23,7 +23,7 @@ export default function AdminPage() {
     if (authenticated === null) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <p className="text-neutral-500">Loading...</p>
+                <p className="text-neutral-500">正在加载...</p>
             </div>
         );
     }

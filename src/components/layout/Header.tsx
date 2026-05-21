@@ -23,9 +23,9 @@ export function Header() {
     ];
 
     const locales = [
-        { code: 'en', label: 'English' },
-        { code: 'zh', label: '中文' },
-        { code: 'de', label: 'Deutsch' },
+        { code: 'en', label: 'EN' },
+        { code: 'zh', label: 'ZH' },
+        { code: 'de', label: 'DE' },
     ];
 
     const switchLocale = (newLocale: string) => {
@@ -34,133 +34,156 @@ export function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-            {/* Top bar */}
-            <div className="max-w-wide mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">AI</span>
-                        </div>
-                        <span className="text-xl font-bold text-neutral-900 tracking-tight">
-                            Now
-                        </span>
+        <header className="w-full bg-vintage-bg text-vintage-text px-4 md:px-8 max-w-[1440px] mx-auto pt-4">
+            
+            {/* Top Brand Logo Banner */}
+            <div className="flex items-center justify-between pb-4 border-b border-vintage-border/40">
+                
+                {/* Left placeholder for symmetry on desktop */}
+                <div className="hidden md:flex items-center gap-1.5 text-[10px] font-mono-raw text-vintage-accent/65 tracking-widest uppercase font-bold">
+                    EST. 2025 • BEIJING
+                </div>
+
+                {/* Main Logo Branding */}
+                <div className="text-center flex-1">
+                    <Link href="/" className="inline-block group focus:outline-none">
+                        <h1 className="text-3xl md:text-5xl font-cinzel tracking-tight font-black text-vintage-text mt-1 transition-colors duration-300 group-hover:text-vintage-accent">
+                            AI NOW <span className="font-serif-vintage tracking-normal italic text-vintage-accent font-normal">｜ AI闹</span>
+                        </h1>
+                    </Link>
+                </div>
+
+                {/* Right side quick tools (desktop) */}
+                <div className="hidden md:flex items-center gap-3">
+                    {/* Search link */}
+                    <Link
+                        href="/search"
+                        className="p-1.5 hover:text-vintage-accent transition-colors focus:outline-none"
+                        aria-label={t('search')}
+                    >
+                        <Search className="w-4 h-4" />
                     </Link>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-8">
-                        {navLinks.map((link) => (
-                            <Link
-                                key={link.href}
-                                href={link.href}
-                                className={clsx(
-                                    'text-sm font-medium transition-colors hover:text-brand-600',
-                                    pathname === link.href
-                                        ? 'text-brand-600'
-                                        : 'text-neutral-600'
-                                )}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
-                    </nav>
-
-                    {/* Right side actions */}
-                    <div className="flex items-center gap-3">
-                        {/* Search */}
-                        <Link
-                            href="/search"
-                            className="p-2 text-neutral-500 hover:text-neutral-900 transition-colors"
-                            aria-label={t('search')}
-                        >
-                            <Search className="w-5 h-5" />
-                        </Link>
-
-                        {/* Admin */}
-                        <a
-                            href="/admin"
-                            className="p-2 text-neutral-400 hover:text-neutral-700 transition-colors"
-                            aria-label="Admin"
-                            title="Admin"
-                        >
-                            <Settings className="w-4 h-4" />
-                        </a>
-
-                        {/* Language Switcher */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setLangMenuOpen(!langMenuOpen)}
-                                className="flex items-center gap-1.5 p-2 text-neutral-500 hover:text-neutral-900 transition-colors"
-                                aria-label="Switch language"
-                            >
-                                <Globe className="w-5 h-5" />
-                                <span className="hidden sm:inline text-xs font-medium uppercase">
-                                    {locale}
-                                </span>
-                            </button>
-
-                            {langMenuOpen && (
-                                <>
-                                    <div
-                                        className="fixed inset-0 z-10"
-                                        onClick={() => setLangMenuOpen(false)}
-                                    />
-                                    <div className="absolute right-0 top-full mt-2 w-36 bg-white rounded-lg shadow-lg border border-neutral-200 py-1 z-20">
-                                        {locales.map((l) => (
-                                            <button
-                                                key={l.code}
-                                                onClick={() => switchLocale(l.code)}
-                                                className={clsx(
-                                                    'w-full text-left px-4 py-2 text-sm transition-colors',
-                                                    locale === l.code
-                                                        ? 'text-brand-600 bg-brand-50 font-medium'
-                                                        : 'text-neutral-700 hover:bg-neutral-50'
-                                                )}
-                                            >
-                                                {l.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Mobile menu toggle */}
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="md:hidden p-2 text-neutral-500 hover:text-neutral-900"
-                            aria-label="Toggle menu"
-                        >
-                            {mobileMenuOpen ? (
-                                <X className="w-6 h-6" />
-                            ) : (
-                                <Menu className="w-6 h-6" />
-                            )}
-                        </button>
-                    </div>
+                    {/* Admin Dashboard */}
+                    <a
+                        href="/admin"
+                        className="p-1.5 hover:text-vintage-accent transition-colors focus:outline-none text-vintage-text/60"
+                        aria-label="Admin"
+                        title="Admin"
+                    >
+                        <Settings className="w-4 h-4" />
+                    </a>
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Classical Newspaper Double Border Nav Bar */}
+            <div className="double-border-bottom py-2 mt-1 border-t border-vintage-accent/40 flex items-center justify-between text-[11px] text-vintage-accent font-mono-raw tracking-wider uppercase font-semibold gap-2">
+                
+                {/* Subtitle / Pipeline Branding */}
+                <div className="text-[9px] md:text-[11px] font-bold text-vintage-accent/80 tracking-wide font-sans-intel">
+                    STORIES OF CHINESE AI ENTREPRENEURS, FOR THE WORLD
+                </div>
+
+                {/* Desktop Navigation Links */}
+                <nav className="hidden md:flex items-center gap-6 font-sans-intel">
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            className={clsx(
+                                'transition-colors hover:text-vintage-text border-b-2 py-0.5 tracking-widest text-xs font-bold',
+                                pathname === link.href
+                                    ? 'border-vintage-accent text-vintage-text'
+                                    : 'border-transparent text-vintage-accent/70'
+                            )}
+                        >
+                            {link.label}
+                        </Link>
+                    ))}
+                </nav>
+
+                {/* Language Switcher & Mobile Menu Button */}
+                <div className="flex items-center gap-2">
+                    {/* Language Switcher Selector */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setLangMenuOpen(!langMenuOpen)}
+                            className="flex items-center gap-1 bg-vintage-panel border border-vintage-border-dark/60 px-2 py-1 rounded text-[10px] font-mono-raw hover:bg-vintage-border/30 hover:border-vintage-accent transition-all font-bold focus:outline-none"
+                            aria-label="Switch language"
+                        >
+                            <Globe className="w-3 h-3 text-vintage-accent" />
+                            <span>{locale.toUpperCase()}</span>
+                        </button>
+
+                        {langMenuOpen && (
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setLangMenuOpen(false)}
+                                />
+                                <div className="absolute right-0 top-full mt-1.5 w-24 bg-vintage-bg border border-vintage-border shadow-md rounded-sm py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    {locales.map((l) => (
+                                        <button
+                                            key={l.code}
+                                            onClick={() => switchLocale(l.code)}
+                                            className={clsx(
+                                                'w-full text-left px-3 py-1.5 font-mono-raw text-xs transition-colors focus:outline-none',
+                                                locale === l.code
+                                                    ? 'text-vintage-accent bg-vintage-panel font-extrabold'
+                                                    : 'text-vintage-text/70 hover:bg-vintage-panel hover:text-vintage-accent'
+                                            )}
+                                        >
+                                            {l.code.toUpperCase()} ({l.label})
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Mobile Menu Icon */}
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="md:hidden p-1 hover:text-vintage-accent text-vintage-text focus:outline-none"
+                        aria-label="Toggle menu"
+                    >
+                        {mobileMenuOpen ? (
+                            <X className="w-5 h-5" />
+                        ) : (
+                            <Menu className="w-5 h-5" />
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Navigation Drawer */}
             {mobileMenuOpen && (
-                <div className="md:hidden border-t border-neutral-200 bg-white">
-                    <nav className="px-4 py-4 space-y-1">
+                <div className="md:hidden border-b border-vintage-border bg-vintage-panel py-3 px-4 mt-1 animate-in slide-in-from-top duration-300 font-sans-intel">
+                    <nav className="flex flex-col gap-2">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
                                 onClick={() => setMobileMenuOpen(false)}
                                 className={clsx(
-                                    'block px-4 py-3 rounded-lg text-base font-medium transition-colors',
+                                    'px-3 py-2 rounded text-sm font-bold tracking-wider transition-colors',
                                     pathname === link.href
-                                        ? 'text-brand-600 bg-brand-50'
-                                        : 'text-neutral-700 hover:bg-neutral-50'
+                                        ? 'bg-vintage-accent text-vintage-bg'
+                                        : 'text-vintage-text hover:bg-vintage-border/20'
                                 )}
                             >
                                 {link.label}
                             </Link>
                         ))}
+                        <hr className="border-vintage-border/50 my-1" />
+                        <div className="flex gap-4 px-3 pt-2 text-xs text-vintage-text/60">
+                            <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="hover:text-vintage-accent flex items-center gap-1 font-bold">
+                                <Search className="w-3.5 h-3.5" /> {t('search')}
+                            </Link>
+                            <a href="/admin" className="hover:text-vintage-accent flex items-center gap-1 font-bold">
+                                <Settings className="w-3.5 h-3.5" /> Admin
+                            </a>
+                        </div>
                     </nav>
                 </div>
             )}
