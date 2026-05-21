@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FileText, Eye, Pencil, Trash2, Check, X } from 'lucide-react';
 import { ArticleEditor } from './ArticleEditor';
+import { adminFetch } from '@/lib/admin-api-client';
 import clsx from 'clsx';
 
 interface Article {
@@ -48,7 +49,7 @@ export function ArticlesPanel() {
     }, [statusFilter]);
 
     const updateArticleStatus = async (id: number, status: string) => {
-        await fetch('/api/admin/articles', {
+        await adminFetch('/api/admin/articles', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -62,12 +63,12 @@ export function ArticlesPanel() {
 
     const deleteArticle = async (id: number) => {
         if (!confirm('Delete this article permanently?')) return;
-        await fetch(`/api/admin/articles?id=${id}`, { method: 'DELETE' });
+        await adminFetch(`/api/admin/articles?id=${id}`, { method: 'DELETE' });
         loadArticles(pagination.page);
     };
 
     const handleSaveArticle = async (article: Article) => {
-        await fetch('/api/admin/articles', {
+        await adminFetch('/api/admin/articles', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

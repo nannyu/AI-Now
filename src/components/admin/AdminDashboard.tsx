@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { LayoutDashboard, FileText, Rss, LogOut } from 'lucide-react';
 import { SourcesPanel } from './SourcesPanel';
 import { ArticlesPanel } from './ArticlesPanel';
+import { adminFetch } from '@/lib/admin-api-client';
 import clsx from 'clsx';
 
 type Tab = 'articles' | 'sources';
@@ -14,7 +15,7 @@ export function AdminDashboard() {
     const [activeTab, setActiveTab] = useState<Tab>('articles');
 
     const handleLogout = async () => {
-        await fetch('/api/admin/logout', { method: 'POST' });
+        await adminFetch('/api/admin/logout', { method: 'POST' });
         router.push('/admin/login');
     };
 

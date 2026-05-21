@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { sanitizeArticleHtml } from '@/lib/html-sanitizer';
 
 export async function GET(request: NextRequest) {
     const session = await getSession();
@@ -36,8 +37,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await request.json();
     const { id, ...updates } = body;
@@ -55,7 +59,7 @@ export async function PATCH(request: NextRequest) {
     for (const [key, value] of Object.entries(updates)) {
         if (allowedFields.includes(key)) {
             fields.push(`${key} = ?`);
-            values.push(value);
+            values.push(key === 'body' && typeof value === 'string' ? sanitizeArticleHtml(value) : value);
         }
     }
 
@@ -73,8 +77,11 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

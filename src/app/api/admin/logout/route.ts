@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
-import { signOut } from '@/lib/auth';
+import type { NextRequest } from 'next/server';
+import { requireAdminRequest, signOut } from '@/lib/auth';
 
-export async function POST() {
-    await signOut();
-    return NextResponse.json({ success: true });
+export async function POST(request: NextRequest) {
+    try {
+        await requireAdminRequest(request);
+        await signOut();
+        return NextResponse.json({ success: true });
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 }

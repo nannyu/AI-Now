@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
+import { validateFeedUrl } from '@/lib/url-security';
 
 export async function GET() {
     const session = await getSession();
@@ -12,8 +13,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { name, feed_url } = await request.json();
 
@@ -21,15 +25,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Name and feed URL are required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const result = db.prepare('INSERT INTO rss_sources (name, feed_url) VALUES (?, ?)').run(name, feed_url);
+    const feedUrl = await validateFeedUrl(feed_url);
+    if (!feedUrl.ok) {
+        return NextResponse.json({ error: feedUrl.error }, { status: 400 });
+    }
 
-    return NextResponse.json({ id: result.lastInsertRowid, name, feed_url, is_active: 1 });
+    const db = getDb();
+    const result = db.prepare('INSERT INTO rss_sources (name, feed_url) VALUES (?, ?)').run(name, feedUrl.url);
+
+    return NextResponse.json({ id: result.lastInsertRowid, name, feed_url: feedUrl.url, is_active: 1 });
 }
 
 export async function DELETE(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -43,8 +55,11 @@ export async function DELETE(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { id, is_active } = await request.json();
 

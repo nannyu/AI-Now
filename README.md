@@ -15,7 +15,7 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 - **Responsive** — Mobile-first design with 3 breakpoints (320px, 768px, 1024px)
 
 ### Admin Dashboard (`/admin`)
-- **Authentication** — JWT-based admin login (default: `admin` / `admin123`)
+- **Authentication** — JWT-based admin login with scrypt password hashing and CSRF-protected admin actions
 - **Article Management** — List, edit, publish, reject, delete articles with live preview
 - **RSS Source Management** — Add/remove wechat-rss-lite data sources, manual fetch trigger
 - **Content Converter** — Automatically transforms WeChat HTML into clean, website-adapted content
@@ -52,6 +52,17 @@ npm install
 
 ### Development
 
+Create a local environment file before starting the app:
+
+```bash
+JWT_SECRET="replace-with-at-least-32-random-characters"
+ADMIN_USERNAME="admin"
+ADMIN_PASSWORD="replace-with-a-strong-password"
+ALLOW_PRIVATE_FEED_URLS="true"
+```
+
+`ALLOW_PRIVATE_FEED_URLS` is useful when developing against a local wechat-rss-lite service. Do not enable it in production.
+
 ```bash
 npm run dev
 ```
@@ -62,9 +73,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the site.
 
 Navigate to [http://localhost:3000/admin](http://localhost:3000/admin) to access the admin dashboard.
 
-Default credentials:
-- Username: `admin`
-- Password: `admin123`
+The first admin user is created from `ADMIN_USERNAME` and `ADMIN_PASSWORD` when the database is initialized. Passwords must be at least 12 characters.
 
 ### Build
 

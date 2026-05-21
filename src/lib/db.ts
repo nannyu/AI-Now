@@ -1,5 +1,7 @@
 import Database from 'better-sqlite3';
+import fs from 'node:fs';
 import path from 'path';
+import { hashPassword } from './password';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'ainow.db');
 
@@ -7,8 +9,6 @@ let db: Database.Database;
 
 export function getDb(): Database.Database {
     if (!db) {
-        // Ensure data directory exists
-        const fs = require('fs');
         const dir = path.dirname(DB_PATH);
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });
@@ -66,19 +66,31 @@ function initializeDb(db: Database.Database) {
     );
   `);
 
-    // Insert default admin if not exists (password: admin123)
-    // In production, use proper bcrypt hashing
-    const adminExists = db.prepare('SELECT id FROM admin_users WHERE username = ?').get('admin');
-    if (!adminExists) {
-        // Simple hash for demo - in production use bcrypt
-        db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(
-            'admin',
-            'admin123'
-        );
+    const legacyDefault = db.prepare(
+        'SELECT id FROM admin_users WHERE username = ? AND password_hash = ?'
+    ).get('admin', 'admin123') as { id: number } | undefined;
+    if (legacyDefault) {
+        db.prepare('DELETE FROM admin_users WHERE id = ?').run(legacyDefault.id);
+    }
+
+    const adminUsername = process.env.ADMIN_USERNAME;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminUsername && adminPassword) {
+        if (adminPassword.length < 12) {
+            throw new Error('ADMIN_PASSWORD must be at least 12 characters');
+        }
+
+        const adminExists = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(adminUsername);
+        if (!adminExists) {
+            db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(
+                adminUsername,
+                hashPassword(adminPassword)
+            );
+        }
     }
 
     // Insert default categories if empty
-    const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as any;
+    const catCount = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
     if (catCount.count === 0) {
         const cats = [
             { name: 'AI Applications', slug: 'ai-applications' },

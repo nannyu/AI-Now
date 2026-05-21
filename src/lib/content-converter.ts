@@ -1,3 +1,5 @@
+import { sanitizeArticleHtml } from './html-sanitizer';
+
 /**
  * Converts raw WeChat article HTML into clean, website-adapted content.
  * Strips WeChat-specific styling, ads, and formatting while preserving
@@ -77,7 +79,7 @@ export function convertWechatContent(rawHtml: string): string {
     html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
     html = html.trim();
 
-    return html;
+    return sanitizeArticleHtml(html);
 }
 
 /**

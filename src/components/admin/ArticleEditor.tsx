@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 
 interface Article {
@@ -27,6 +27,23 @@ interface Props {
 export function ArticleEditor({ article, onSave, onCancel }: Props) {
     const [form, setForm] = useState({ ...article });
     const [showPreview, setShowPreview] = useState(false);
+    const previewSrcDoc = useMemo(() => {
+        return `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { margin: 0; color: #171717; font-family: Georgia, serif; line-height: 1.75; }
+    img { max-width: 100%; height: auto; border-radius: 8px; }
+    a { color: #2563eb; }
+    blockquote { border-left: 3px solid #d4d4d4; margin-left: 0; padding-left: 1rem; color: #525252; }
+    h2, h3, h4 { font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.25; }
+  </style>
+</head>
+<body>${form.body}</body>
+</html>`;
+    }, [form.body]);
 
     const handleChange = (field: keyof Article, value: any) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -78,9 +95,11 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                             <span className="font-medium text-neutral-700">{form.author}</span>
                             {form.category && <span>· {form.category}</span>}
                         </div>
-                        <div
-                            className="article-body"
-                            dangerouslySetInnerHTML={{ __html: form.body }}
+                        <iframe
+                            title="Article preview"
+                            sandbox=""
+                            srcDoc={previewSrcDoc}
+                            className="w-full min-h-[520px] border-0"
                         />
                     </div>
                 </div>

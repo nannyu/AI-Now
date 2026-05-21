@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { convertWechatContent, extractSummary, extractCoverImage } from '@/lib/content-converter';
+import { validateFeedUrl } from '@/lib/url-security';
 
 /**
  * Fetches articles from a wechat-rss-lite source and stores them in the database.
  * Expects the wechat-rss-lite service to be running and accessible.
  */
 export async function POST(request: NextRequest) {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        await requireAdminRequest(request);
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const { source_id } = await request.json();
 
@@ -25,8 +29,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        const feedUrl = await validateFeedUrl(source.feed_url);
+        if (!feedUrl.ok) {
+            return NextResponse.json({ error: feedUrl.error }, { status: 400 });
+        }
+
         // Fetch RSS feed from wechat-rss-lite
-        const response = await fetch(source.feed_url, {
+        const response = await fetch(feedUrl.url, {
             headers: { 'User-Agent': 'AI-Now-Crawler/1.0' },
             signal: AbortSignal.timeout(30000),
         });

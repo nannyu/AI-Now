@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, RefreshCw, ToggleLeft, ToggleRight, Rss } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-api-client';
 
 interface Source {
     id: number;
@@ -38,7 +39,7 @@ export function SourcesPanel() {
         e.preventDefault();
         if (!newName || !newUrl) return;
 
-        const res = await fetch('/api/admin/sources', {
+        const res = await adminFetch('/api/admin/sources', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: newName, feed_url: newUrl }),
@@ -54,12 +55,12 @@ export function SourcesPanel() {
 
     const deleteSource = async (id: number) => {
         if (!confirm('Delete this source?')) return;
-        await fetch(`/api/admin/sources?id=${id}`, { method: 'DELETE' });
+        await adminFetch(`/api/admin/sources?id=${id}`, { method: 'DELETE' });
         loadSources();
     };
 
     const toggleSource = async (id: number, currentActive: number) => {
-        await fetch('/api/admin/sources', {
+        await adminFetch('/api/admin/sources', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, is_active: !currentActive }),
@@ -72,7 +73,7 @@ export function SourcesPanel() {
         setFetchResult(null);
 
         try {
-            const res = await fetch('/api/admin/fetch-source', {
+            const res = await adminFetch('/api/admin/fetch-source', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ source_id: id }),
@@ -84,8 +85,9 @@ export function SourcesPanel() {
             } else {
                 setFetchResult(`Error: ${data.error}`);
             }
-        } catch (err: any) {
-            setFetchResult(`Error: ${err.message}`);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setFetchResult(`Error: ${message}`);
         } finally {
             setFetching(null);
             loadSources();
