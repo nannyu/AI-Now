@@ -4,7 +4,8 @@ import path from 'path';
 import { hashPassword } from './password';
 import { categories } from './mock-data';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'ainow.db');
+const DB_PATH = process.env.AINOW_DB_PATH
+    || (process.env.VERCEL ? path.join('/tmp', 'ainow.db') : path.join(process.cwd(), 'data', 'ainow.db'));
 
 let db: Database.Database;
 
