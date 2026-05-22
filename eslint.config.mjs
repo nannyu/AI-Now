@@ -3,7 +3,7 @@ import nextTypescript from 'eslint-config-next/typescript';
 
 const eslintConfig = [
     {
-        ignores: ['.next/**', 'next-env.d.ts', 'node_modules/**', 'services/wechat-rss-lite/**'],
+        ignores: ['.next/**', '.vercel/**', 'next-env.d.ts', 'node_modules/**', 'services/wechat-rss-lite/**'],
     },
     ...nextVitals,
     ...nextTypescript,

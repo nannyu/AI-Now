@@ -7,23 +7,25 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 ## Features
 
 ### Frontend (Reader-facing)
-- **Homepage** — News ticker, featured article hero, Editor's Picks, category sections, newsletter signup
+- **Homepage** — News ticker, featured article hero, and a continuous "all articles" stream so readers can keep scrolling through every published story
 - **Article Detail** — Long-form reading with serif typography, reading progress bar, social sharing, related articles, and reader comments
 - **Category Pages** — Filtered article listings with pagination
 - **Search** — Real-time full-text search across articles
-- **Reader Accounts** — Username/email registration, login, profile editing, and authenticated commenting
+- **Reader Accounts** — Username/email registration, login, profile editing, and authenticated commenting; reader usernames cannot collide with admin usernames
 - **Multi-language** — Chinese (zh), English (en), German (de) with URL-based locale routing
 - **Responsive** — Mobile-first design with 3 breakpoints (320px, 768px, 1024px)
 
 ### Admin Dashboard (`/admin`)
 - **Authentication** — JWT-based admin login with scrypt password hashing and CSRF-protected admin actions
 - **Article Management** — List, edit, publish, reject, delete articles with live preview
-- **WeChat RSS** — Embedded wechat-rss-lite admin (login, subscriptions, polling) via authenticated proxy
-- **RSS Source Management** — Import feeds from wechat-rss-lite subscriptions or add manually; manual fetch trigger
+- **WeChat RSS** — Embedded wechat-rss-lite admin (login, subscriptions, polling, history fetch, article refresh) via authenticated proxy
+- **Background Jobs** — Long-running fetch, import, polling, and refresh operations continue in the background with resumable progress
+- **RSS Source Management** — Import feeds from wechat-rss-lite subscriptions or add manually; fetches run as background jobs with progress
 - **Content Converter** — Automatically transforms WeChat HTML into clean, website-adapted content
 
 ### Backend
 - **wechat-rss-lite Integration** — Fetches and parses RSS feeds from WeChat public accounts
+- **Scheduled Polling** — Vercel Cron can trigger background WeChat polling through `/api/cron/wechat-rss/poll`
 - **Database** — Uses SQLite for local development and can use Supabase/Postgres in production through `DATABASE_URL`
 - **Content Pipeline** — Strips WeChat styling, preserves semantic structure, extracts cover images and summaries
 - **Auth & Session APIs** — Separate admin and reader sessions with HTTP-only JWT cookies
@@ -61,6 +63,7 @@ Create a local environment file before starting the app:
 JWT_SECRET="replace-with-at-least-32-random-characters"
 ADMIN_USERNAME="admin"
 ADMIN_PASSWORD="replace-with-a-strong-password"
+CRON_SECRET="replace-with-a-random-cron-secret"
 ALLOW_PRIVATE_FEED_URLS="true"
 WECHAT_RSS_BASE_URL="http://127.0.0.1:8081"
 WECHAT_RSS_ADMIN_TOKEN=""
@@ -95,6 +98,8 @@ npm run dev
 ```
 
 Open **Admin → WeChat RSS** for login, subscriptions, and RSS settings. Use **RSS Sources → Import from WeChat RSS** to add feeds, then **Fetch** to ingest articles.
+
+Long-running fetches and imports are queued as background jobs. The admin UI shows live progress and can resume the latest active job after a page reload, so you do not need to keep a tab parked on the same view while articles are fetched.
 
 Open [http://localhost:3000](http://localhost:3000) to view the site.
 
@@ -159,11 +164,11 @@ src/
 
 ## Content Pipeline
 
-1. **Configure Source** — Add a wechat-rss-lite feed URL in the admin panel
-2. **Fetch Articles** — Click "Fetch" to pull new articles from the RSS feed
-3. **Auto-Convert** — WeChat HTML is automatically cleaned and adapted to the site's typography
-4. **Review & Edit** — Edit title, summary, author, category, cover image in the admin editor
-5. **Publish** — Approve articles to make them visible on the public site
+1. **Subscribe or Configure Source** — Subscribe to a WeChat public account in wechat-rss-lite or add a feed URL in the admin panel.
+2. **Fetch Articles** — Run latest polling, history fetch, RSS fetch, or subscription import. These actions run as background jobs with progress.
+3. **Auto-Convert** — WeChat HTML is automatically cleaned, images are proxied, and content is adapted to the site's typography.
+4. **Review & Edit** — Edit title, summary, author, category, cover image in the admin editor.
+5. **Publish** — Approve articles to make them visible on the public site and in the homepage's continuous article stream.
 
 ## Deployment
 
@@ -182,6 +187,8 @@ Production deployment checklist:
 6. Set `DATABASE_URL` to a Supabase/Postgres connection string for durable Next.js app data. The wechat-rss-lite service also uses this connection by default, storing its data in a separate `wechat_rss_lite` schema; set `WECHAT_RSS_DATABASE_URL` only if the crawler should use a different database.
 7. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
 8. Run `npm run build` before publishing.
+
+`vercel.json` includes a Vercel Cron route for `/api/cron/wechat-rss/poll`. The checked-in schedule is daily (`0 0 * * *`) because Vercel Hobby projects do not allow hourly Cron Jobs. On a Pro project, change it to `0 * * * *` for hourly polling. If `CRON_SECRET` is set, manual calls to the cron endpoint must include `Authorization: Bearer <CRON_SECRET>`.
 
 If `DATABASE_URL` is omitted, Vercel can only use a temporary SQLite file under `/tmp`; data may disappear after instance recycling, cold starts, or redeployments.
 

@@ -23,6 +23,8 @@ type ReaderUser = {
     password_hash: string;
 };
 
+type ReaderIdentityConflict = 'username' | 'email';
+
 function getJwtSecret() {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
@@ -146,9 +148,70 @@ export async function signOut() {
     cookieStore.delete(CSRF_COOKIE_NAME);
 }
 
+export async function findReaderIdentityConflict(input: {
+    username: string;
+    email: string;
+    excludeUserId?: number;
+}): Promise<ReaderIdentityConflict | null> {
+    const username = input.username.trim();
+    const email = input.email.trim().toLowerCase();
+    const excludeUserId = input.excludeUserId ?? null;
+
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<{ field: ReaderIdentityConflict }>(
+            `
+                SELECT 'username' AS field
+                FROM admin_users
+                WHERE lower(username) = lower($1)
+                UNION ALL
+                SELECT 'username' AS field
+                FROM reader_users
+                WHERE lower(username) = lower($1)
+                  AND ($3::bigint IS NULL OR id <> $3::bigint)
+                UNION ALL
+                SELECT 'email' AS field
+                FROM reader_users
+                WHERE lower(email) = lower($2)
+                  AND ($3::bigint IS NULL OR id <> $3::bigint)
+                LIMIT 1
+            `,
+            [username, email, excludeUserId]
+        );
+        return rows[0]?.field ?? null;
+    }
+
+    const db = getDb();
+    const usernameConflict =
+        db.prepare('SELECT id FROM admin_users WHERE lower(username) = lower(?)').get(username) ||
+        db.prepare(`
+            SELECT id
+            FROM reader_users
+            WHERE lower(username) = lower(?)
+              AND (? IS NULL OR id <> ?)
+        `).get(username, excludeUserId, excludeUserId);
+    if (usernameConflict) {
+        return 'username';
+    }
+
+    const emailConflict = db.prepare(`
+        SELECT id
+        FROM reader_users
+        WHERE lower(email) = lower(?)
+          AND (? IS NULL OR id <> ?)
+    `).get(email, excludeUserId, excludeUserId);
+    return emailConflict ? 'email' : null;
+}
+
 export async function registerReaderUser(username: string, email: string, password: string) {
     const normalizedUsername = username.trim();
     const normalizedEmail = email.trim().toLowerCase();
+    const conflict = await findReaderIdentityConflict({
+        username: normalizedUsername,
+        email: normalizedEmail,
+    });
+    if (conflict) {
+        throw new Error(conflict === 'email' ? 'EMAIL_TAKEN' : 'USERNAME_TAKEN');
+    }
 
     if (isPostgresEnabled()) {
         const { rows } = await pgQuery<{ id: string; username: string; email: string }>(

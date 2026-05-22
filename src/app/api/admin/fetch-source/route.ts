@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
+import { createAdminJob, runAdminJob, updateAdminJob } from '@/lib/admin-jobs';
 import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { validateFeedUrl } from '@/lib/url-security';
@@ -21,6 +23,13 @@ type ParsedRssArticle = {
     image: string;
 };
 
+type FetchSourceResult = {
+    success: boolean;
+    total: number;
+    ingested: number;
+    skipped: number;
+};
+
 /**
  * Fetches articles from a wechat-rss-lite source and stores them in the database.
  * Expects the wechat-rss-lite service to be running and accessible.
@@ -32,7 +41,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { source_id } = await request.json() as { source_id?: unknown };
+    const body = await request.json() as { source_id?: unknown; background?: unknown };
+    const { source_id } = body;
 
     if (!source_id) {
         return NextResponse.json({ error: 'source_id is required' }, { status: 400 });
@@ -53,10 +63,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Source not found' }, { status: 404 });
     }
 
-    try {
+    const runFetch = async (jobId?: string): Promise<FetchSourceResult> => {
         const feedUrl = await validateFeedUrl(source.feed_url);
         if (!feedUrl.ok) {
-            return NextResponse.json({ error: feedUrl.error }, { status: 400 });
+            throw new Error(feedUrl.error);
         }
 
         // Fetch RSS feed from wechat-rss-lite
@@ -78,6 +88,12 @@ export async function POST(request: NextRequest) {
 
         // Parse RSS/XML feed
         const articles = parseRssFeed(feedText);
+        if (jobId) {
+            await updateAdminJob(jobId, {
+                total: articles.length,
+                message: `已读取 RSS，共 ${articles.length} 篇文章`,
+            });
+        }
 
         const drafts = articles.map((article) => ({
                 sourceId,
@@ -93,6 +109,14 @@ export async function POST(request: NextRequest) {
         const { ingested, skipped } = isPostgresEnabled()
             ? await insertArticleDraftsPg(drafts)
             : insertArticleDrafts(db!, drafts);
+        if (jobId) {
+            await updateAdminJob(jobId, {
+                processed: articles.length,
+                succeeded: ingested,
+                failed: 0,
+                message: `已抓取 ${articles.length} 篇文章，新增 ${ingested} 篇`,
+            });
+        }
 
         // Update last fetched time
         if (isPostgresEnabled()) {
@@ -101,12 +125,26 @@ export async function POST(request: NextRequest) {
             db!.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(sourceId);
         }
 
-        return NextResponse.json({
+        return {
             success: true,
             total: articles.length,
             ingested,
             skipped,
-        });
+        };
+    };
+
+    try {
+        if (body.background) {
+            const job = await createAdminJob({
+                type: 'rss-source.fetch',
+                label: `抓取来源：${source.name}`,
+                message: '准备抓取 RSS 来源',
+            });
+            after(() => runAdminJob(job.id, () => runFetch(job.id)));
+            return NextResponse.json({ job_id: job.id, job });
+        }
+
+        return NextResponse.json(await runFetch());
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(

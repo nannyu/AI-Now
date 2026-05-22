@@ -239,9 +239,9 @@ export async function getDbCategoryCounts() {
                 SELECT COALESCE(NULLIF(category, ''), $1) as category, COUNT(*)::text as count
                 FROM articles
                 WHERE status = 'published'
-                GROUP BY COALESCE(NULLIF(category, ''), $2)
+                GROUP BY 1
             `,
-            [DEFAULT_CATEGORY_SLUG, DEFAULT_CATEGORY_SLUG]
+            [DEFAULT_CATEGORY_SLUG]
         );
 
         return rows.reduce<Record<string, number>>((acc, row) => {

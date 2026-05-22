@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { getReaderSession, refreshReaderSession, requireReaderRequest } from '@/lib/auth';
+import { findReaderIdentityConflict, getReaderSession, refreshReaderSession, requireReaderRequest } from '@/lib/auth';
 import { hashPassword } from '@/lib/password';
 import { isPostgresEnabled, pgQuery } from '@/lib/postgres';
 
@@ -45,6 +45,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     try {
+        const conflict = await findReaderIdentityConflict({
+            username,
+            email,
+            excludeUserId: session.userId,
+        });
+        if (conflict === 'username') {
+            return NextResponse.json({ error: '用户名已被占用。' }, { status: 409 });
+        }
+        if (conflict === 'email') {
+            return NextResponse.json({ error: '邮箱已被占用。' }, { status: 409 });
+        }
+
         let updated: { id: number; username: string; email: string };
 
         if (isPostgresEnabled()) {
