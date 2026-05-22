@@ -34,6 +34,24 @@ interface WechatSubscriptionOption {
     enabled: boolean;
 }
 
+interface AdminJob {
+    id: string;
+    type: string;
+    status: string;
+    label: string;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    message: string;
+    error: string;
+    result?: {
+        ingested?: number;
+        skipped?: number;
+        errors?: string[];
+    };
+}
+
 const emptyDraft = {
     title: '',
     summary: '',
@@ -67,6 +85,7 @@ export function ArticlesPanel() {
     const [subscriptions, setSubscriptions] = useState<WechatSubscriptionOption[]>([]);
     const [selectedSubscriptions, setSelectedSubscriptions] = useState<Set<string>>(new Set());
     const [message, setMessage] = useState<string | null>(null);
+    const [activeJob, setActiveJob] = useState<AdminJob | null>(null);
 
     const loadArticles = useCallback(async (page = 1) => {
         setLoading(true);
@@ -86,6 +105,11 @@ export function ArticlesPanel() {
     useEffect(() => {
         loadArticles();
     }, [loadArticles]);
+
+    useEffect(() => {
+        void resumeLatestImportJob();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const updateArticleStatus = async (id: number, status: string) => {
         await adminFetch('/api/admin/articles', {
@@ -237,10 +261,24 @@ export function ArticlesPanel() {
                 setMessage(data.error || '导入失败。');
                 return;
             }
-            setMessage(
-                `已导入 ${data.ingested} 篇草稿，跳过 ${data.skipped} 篇重复文章。` +
-                (data.errors?.length ? ` ${data.errors.length} 个订阅导入异常。` : '')
-            );
+            const job = data.job as AdminJob | undefined;
+            if (job?.id) {
+                setActiveJob(job);
+                setMessage('导入任务已在后台开始，可以切换页面，任务会继续执行。');
+                setShowImport(false);
+                void pollAdminJob(job.id, (doneJob) => {
+                    const ingested = doneJob.result?.ingested ?? doneJob.succeeded;
+                    const skipped = doneJob.result?.skipped ?? 0;
+                    setMessage(
+                        doneJob.status === 'succeeded'
+                            ? `导入完成：新增 ${ingested} 篇草稿，跳过 ${skipped} 篇重复文章。`
+                            : `导入失败：${doneJob.error || doneJob.message}`
+                    );
+                    loadArticles(1);
+                });
+                return;
+            }
+            setMessage('导入任务已提交。');
             setShowImport(false);
             loadArticles(1);
         } catch (err: unknown) {
@@ -248,6 +286,39 @@ export function ArticlesPanel() {
         } finally {
             setImportLoading(false);
         }
+    };
+
+    const pollAdminJob = async (jobId: string, onDone?: (job: AdminJob) => void) => {
+        for (;;) {
+            const res = await fetch(`/api/admin/jobs/${encodeURIComponent(jobId)}`, { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const job = await res.json() as AdminJob;
+            setActiveJob(job);
+            if (job.status === 'succeeded' || job.status === 'failed') {
+                onDone?.(job);
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+    };
+
+    const resumeLatestImportJob = async () => {
+        const res = await fetch('/api/admin/jobs?limit=10', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const jobs = await res.json() as AdminJob[];
+        const job = jobs.find((item) => item.type === 'wechat-articles.import' && !['succeeded', 'failed'].includes(item.status));
+        if (!job) return;
+        setActiveJob(job);
+        void pollAdminJob(job.id, (doneJob) => {
+            const ingested = doneJob.result?.ingested ?? doneJob.succeeded;
+            const skipped = doneJob.result?.skipped ?? 0;
+            setMessage(
+                doneJob.status === 'succeeded'
+                    ? `导入完成：新增 ${ingested} 篇草稿，跳过 ${skipped} 篇重复文章。`
+                    : `导入失败：${doneJob.error || doneJob.message}`
+            );
+            loadArticles(1);
+        });
     };
 
     const toggleArticle = (id: number) => {
@@ -345,6 +416,10 @@ export function ArticlesPanel() {
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                     {message}
                 </div>
+            )}
+
+            {activeJob && (
+                <JobProgress job={activeJob} />
             )}
 
             {showCreate && (
@@ -702,6 +777,38 @@ export function ArticlesPanel() {
                     )}
                 </>
             )}
+        </div>
+    );
+}
+
+function JobProgress({ job }: { job: AdminJob }) {
+    const total = Math.max(job.total || 0, 0);
+    const processed = Math.max(job.processed || 0, 0);
+    const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : (job.status === 'succeeded' ? 100 : 0);
+    const isDone = job.status === 'succeeded' || job.status === 'failed';
+
+    return (
+        <div className="mb-4 p-4 bg-white border border-neutral-200 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <div>
+                    <p className="text-sm font-semibold text-neutral-900">{job.label}</p>
+                    <p className="text-xs text-neutral-500">{job.error || job.message || '后台任务运行中'}</p>
+                </div>
+                <span className={clsx(
+                    'text-xs px-2 py-1 rounded-full w-fit',
+                    job.status === 'failed' ? 'bg-red-50 text-red-700' :
+                        job.status === 'succeeded' ? 'bg-green-50 text-green-700' :
+                            'bg-blue-50 text-blue-700'
+                )}>
+                    {job.status === 'running' ? '运行中' : job.status === 'succeeded' ? '已完成' : job.status === 'failed' ? '失败' : '排队中'}
+                </span>
+            </div>
+            <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div className={clsx('h-full transition-all', job.status === 'failed' ? 'bg-red-500' : 'bg-brand-600')} style={{ width: `${percent}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-neutral-500">
+                已处理 {processed}/{total || '-'}，成功 {job.succeeded}，失败 {job.failed}{isDone ? '' : '。可离开当前页面，任务会继续执行。'}
+            </p>
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import type { Locale } from '@/i18n/routing';
-import { LogIn, LogOut, Menu, Save, Search, Settings, Globe, UserRound, X } from 'lucide-react';
+import { LogIn, LogOut, Menu, Save, Search, Globe, UserRound, X } from 'lucide-react';
 import clsx from 'clsx';
 
 type ReaderUser = {
@@ -97,32 +97,77 @@ export function Header() {
         setLangMenuOpen(false);
     };
 
+    const adminCsrfToken = () => {
+        const match = document.cookie.match(/(?:^|; )ainow-admin-csrf=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    };
+
     const submitAccountAuth = async (event: React.FormEvent) => {
         event.preventDefault();
         setAccountLoading(true);
         setAccountMessage('');
 
-        const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
         const payload = authMode === 'register'
             ? { username: accountUsername, email: accountEmail, password: accountPassword }
             : { username: accountUsername, password: accountPassword };
 
         try {
-            const res = await fetch(endpoint, {
+            const readerRes = await fetch(authMode === 'register' ? '/api/auth/register' : '/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            const data = await res.json().catch(() => ({}));
+            const readerData = await readerRes.json().catch(() => ({}));
+            if (readerRes.ok) {
+                await loadAccountState();
+                setAccountPassword('');
+                setAccountMessage(authMode === 'register' ? '注册成功。' : '登录成功。');
+                return;
+            }
+
+            if (authMode === 'login') {
+                const adminRes = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const adminData = await adminRes.json().catch(() => ({}));
+                if (adminRes.ok) {
+                    await loadAccountState();
+                    setAccountPassword('');
+                    setAccountMessage('管理员登录成功。');
+                    return;
+                }
+                setAccountMessage(adminData.error || readerData.error || '用户名、邮箱或密码不正确。');
+                return;
+            }
+
+            setAccountMessage(readerData.error || '操作失败，请重试。');
+        } catch {
+            setAccountMessage('网络异常，请稍后重试。');
+        } finally {
+            setAccountLoading(false);
+        }
+    };
+
+    const logoutAdmin = async () => {
+        setAccountLoading(true);
+        setAccountMessage('');
+
+        try {
+            const res = await fetch('/api/admin/logout', {
+                method: 'POST',
+                headers: { 'x-csrf-token': adminCsrfToken() },
+            });
             if (!res.ok) {
-                setAccountMessage(data.error || '操作失败，请重试。');
+                setAccountMessage('管理员注销失败，请稍后重试。');
                 return;
             }
             await loadAccountState();
             setAccountPassword('');
-            setAccountMessage(authMode === 'register' ? '注册成功。' : '登录成功。');
+            setAccountMessage('管理员已退出。');
         } catch {
-            setAccountMessage('网络异常，请稍后重试。');
+            setAccountMessage('网络异常，注销失败。');
         } finally {
             setAccountLoading(false);
         }
@@ -189,10 +234,10 @@ export function Header() {
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-vintage-border pb-2">
                     <div>
                         <h3 className="font-mono-raw text-[11px] font-black uppercase tracking-widest text-vintage-accent">
-                            {readerUser ? '账户设置' : authMode === 'register' ? '注册账户' : '登录账户'}
+                            {readerUser ? '账户设置' : adminAuthenticated ? '管理员入口' : authMode === 'register' ? '注册账户' : '登录账户'}
                         </h3>
                         <p className="mt-1 text-[10px] text-vintage-text/55">
-                            {readerUser ? '管理你的评论身份和登录信息。' : '登录后可以发表评论和划线标注。'}
+                            {readerUser ? '管理你的评论身份和登录信息。' : adminAuthenticated ? '已登录管理员，可进入后台；也可继续登录读者账户。' : '登录后可以发表评论和划线标注；管理员账号也可从这里进入后台。'}
                         </p>
                     </div>
                     <button
@@ -293,6 +338,17 @@ export function Header() {
                             进入后台
                         </a>
                     )}
+                    {adminAuthenticated && (
+                        <button
+                            type="button"
+                            onClick={logoutAdmin}
+                            disabled={accountLoading}
+                            className="inline-flex items-center gap-1 rounded-sm border border-vintage-border bg-vintage-panel/50 px-2 py-1 text-vintage-text/70 transition-colors hover:text-vintage-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <LogOut className="h-3 w-3" />
+                            退出后台
+                        </button>
+                    )}
                     {readerUser && (
                         <button
                             type="button"
@@ -340,47 +396,15 @@ export function Header() {
 
                     <span className="text-vintage-border-dark">|</span>
 
-                    {readerUser ? (
-                        <button
-                            type="button"
-                            onClick={() => openAccountMenu('profile')}
-                            className="hover:text-vintage-accent transition-colors flex items-center gap-1.5 focus:outline-none text-vintage-text/70"
-                            aria-label="账户设置"
-                        >
-                            <UserRound className="w-3.5 h-3.5" />
-                            <span>{readerUser.username}</span>
-                        </button>
-                    ) : (
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => openAccountMenu('login')}
-                                className="hover:text-vintage-accent transition-colors flex items-center gap-1.5 focus:outline-none text-vintage-text/70"
-                            >
-                                <LogIn className="w-3.5 h-3.5" />
-                                <span>登录</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => openAccountMenu('register')}
-                                className="text-vintage-accent hover:text-vintage-text transition-colors"
-                            >
-                                注册
-                            </button>
-                        </div>
-                    )}
-
-                    <span className="text-vintage-border-dark">|</span>
-
                     <button
                         type="button"
                         onClick={() => openAccountMenu(readerUser ? 'profile' : 'login')}
                         className="hover:text-vintage-accent transition-colors flex items-center gap-1.5 focus:outline-none text-vintage-text/70"
-                        aria-label="设置"
-                        title="设置"
+                        aria-label="账户"
+                        title="账户"
                     >
-                        <Settings className="w-3.5 h-3.5" />
-                        <span>设置</span>
+                        {readerUser || adminAuthenticated ? <UserRound className="w-3.5 h-3.5" /> : <LogIn className="w-3.5 h-3.5" />}
+                        <span>{readerUser?.username || (adminAuthenticated ? '管理员' : '登录 / 注册')}</span>
                     </button>
 
                     <span className="text-vintage-border-dark">|</span>
@@ -476,9 +500,9 @@ export function Header() {
                         type="button"
                         onClick={() => openAccountMenu(readerUser ? 'profile' : 'login')}
                         className="flex items-center gap-1 bg-vintage-panel border border-vintage-border-dark/60 px-2 py-1 rounded text-[10px] font-mono-raw hover:bg-vintage-border/30 hover:border-vintage-accent transition-all font-bold focus:outline-none"
-                        aria-label="设置"
+                        aria-label="账户"
                     >
-                        <Settings className="w-3 h-3 text-vintage-accent" />
+                        {readerUser || adminAuthenticated ? <UserRound className="w-3 h-3 text-vintage-accent" /> : <LogIn className="w-3 h-3 text-vintage-accent" />}
                     </button>
 
                     <div className="relative">
@@ -570,18 +594,8 @@ export function Header() {
                             <Link href="/search" onClick={() => setMobileMenuOpen(false)} className="hover:text-vintage-accent flex items-center gap-1 font-bold">
                                 <Search className="w-3.5 h-3.5" /> {t('search')}
                             </Link>
-                            {!readerUser && (
-                                <>
-                                    <button type="button" onClick={() => openAccountMenu('login')} className="hover:text-vintage-accent flex items-center gap-1 font-bold">
-                                        <LogIn className="w-3.5 h-3.5" /> 登录
-                                    </button>
-                                    <button type="button" onClick={() => openAccountMenu('register')} className="hover:text-vintage-accent flex items-center gap-1 font-bold">
-                                        <UserRound className="w-3.5 h-3.5" /> 注册
-                                    </button>
-                                </>
-                            )}
                             <button type="button" onClick={() => openAccountMenu(readerUser ? 'profile' : 'login')} className="hover:text-vintage-accent flex items-center gap-1 font-bold">
-                                <Settings className="w-3.5 h-3.5" /> 设置
+                                {readerUser || adminAuthenticated ? <UserRound className="w-3.5 h-3.5" /> : <LogIn className="w-3.5 h-3.5" />} {readerUser?.username || (adminAuthenticated ? '管理员' : '登录 / 注册')}
                             </button>
                         </div>
                     </nav>

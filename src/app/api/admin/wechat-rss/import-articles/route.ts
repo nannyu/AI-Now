@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
+import { createAdminJob, runAdminJob, updateAdminJob } from '@/lib/admin-jobs';
 import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { insertArticleDrafts, insertArticleDraftsPg, type ArticleDraftInput } from '@/lib/article-ingest';
@@ -85,40 +87,67 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No subscriptions selected' }, { status: 400 });
         }
 
-        const drafts: ArticleDraftInput[] = [];
-        const errors: string[] = [];
-
-        for (const subscription of selected) {
-            try {
-                if (refreshHistory) {
-                    await fetchJson(
-                        `/subscriptions/${encodeURIComponent(subscription.id)}/history?pages=3&page_size=${limit}`,
-                        { method: 'POST' }
-                    );
-                }
-
-                const articles = await fetchJson<WechatArticle[]>(
-                    `/subscriptions/${encodeURIComponent(subscription.id)}/articles?limit=${limit}`
-                );
-                drafts.push(...articles.map((article) => toDraft(article, subscription)));
-            } catch (err) {
-                const message = err instanceof Error ? err.message : 'Unknown import error';
-                errors.push(`${subscription.title}: ${message}`);
-            }
-        }
-
-        const result = isPostgresEnabled()
-            ? await insertArticleDraftsPg(drafts)
-            : insertArticleDrafts(getDb(), drafts);
-
-        return NextResponse.json({
-            success: errors.length === 0,
-            subscriptions: selected.length,
-            total: drafts.length,
-            ingested: result.ingested,
-            skipped: result.skipped,
-            errors,
+        const job = await createAdminJob({
+            type: 'wechat-articles.import',
+            label: `导入 ${selected.length} 个公众号的文章`,
+            total: selected.length,
+            message: '准备导入公众号文章',
         });
+
+        after(() => runAdminJob(job.id, async () => {
+            const drafts: ArticleDraftInput[] = [];
+            const errors: string[] = [];
+            let processed = 0;
+
+            for (const subscription of selected) {
+                try {
+                    if (refreshHistory) {
+                        await fetchJson(
+                            `/subscriptions/${encodeURIComponent(subscription.id)}/history?pages=3&page_size=${limit}`,
+                            { method: 'POST' }
+                        );
+                    }
+
+                    const articles = await fetchJson<WechatArticle[]>(
+                        `/subscriptions/${encodeURIComponent(subscription.id)}/articles?limit=${limit}`
+                    );
+                    drafts.push(...articles.map((article) => toDraft(article, subscription)));
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : 'Unknown import error';
+                    errors.push(`${subscription.title}: ${message}`);
+                } finally {
+                    processed++;
+                    await updateAdminJob(job.id, {
+                        processed,
+                        total: selected.length,
+                        succeeded: Math.max(0, processed - errors.length),
+                        failed: errors.length,
+                        message: `已处理 ${processed}/${selected.length} 个订阅`,
+                    });
+                }
+            }
+
+            const result = isPostgresEnabled()
+                ? await insertArticleDraftsPg(drafts)
+                : insertArticleDrafts(getDb(), drafts);
+
+            await updateAdminJob(job.id, {
+                succeeded: result.ingested,
+                failed: errors.length,
+                message: `已导入 ${result.ingested} 篇草稿，跳过 ${result.skipped} 篇重复文章`,
+            });
+
+            return {
+                success: errors.length === 0,
+                subscriptions: selected.length,
+                total: drafts.length,
+                ingested: result.ingested,
+                skipped: result.skipped,
+                errors,
+            };
+        }));
+
+        return NextResponse.json({ job_id: job.id, job });
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to import articles';
         return NextResponse.json({ error: message }, { status: 500 });

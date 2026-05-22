@@ -28,7 +28,13 @@ export async function POST(request: NextRequest) {
         }, { status: 201 });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '';
-        if (message.includes('UNIQUE')) {
+        if (message === 'USERNAME_TAKEN') {
+            return NextResponse.json({ error: '用户名已被注册。' }, { status: 409 });
+        }
+        if (message === 'EMAIL_TAKEN') {
+            return NextResponse.json({ error: '邮箱已被注册。' }, { status: 409 });
+        }
+        if (message.includes('UNIQUE') || message.includes('duplicate key')) {
             return NextResponse.json({ error: '用户名或邮箱已被注册。' }, { status: 409 });
         }
         return NextResponse.json({ error: '注册失败，请稍后重试。' }, { status: 500 });

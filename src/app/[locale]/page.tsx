@@ -1,4 +1,4 @@
-import { getFeaturedDbArticle, getLatestDbArticles } from '@/lib/db-articles';
+import { getAllPublishedDbArticles, getFeaturedDbArticle } from '@/lib/db-articles';
 import { formatArticleDate } from '@/lib/format-date';
 import { Link } from '@/i18n/routing';
 import { Clock, ArrowRight } from 'lucide-react';
@@ -14,14 +14,12 @@ export default async function HomePage({ params }: Props) {
     const newsT = await getTranslations({ locale, namespace: 'newsletter' });
 
     const featured = await getFeaturedDbArticle();
-    const latestArticles = await getLatestDbArticles(8);
-    const latest = latestArticles
-        .filter((article) => !featured || article.id !== featured.id)
-        .slice(0, 5);
-    const hasPublishedArticles = Boolean(featured) || latest.length > 0;
+    const allArticles = await getAllPublishedDbArticles();
+    const articleStream = allArticles.filter((article) => !featured || article.id !== featured.id);
+    const hasPublishedArticles = Boolean(featured) || articleStream.length > 0;
 
-    const tickerItems: Array<{ title: string; href?: string }> = latestArticles.length > 0
-        ? latestArticles.map((article) => ({
+    const tickerItems: Array<{ title: string; href?: string }> = allArticles.length > 0
+        ? allArticles.map((article) => ({
             title: article.title,
             href: `/article/${article.slug}`,
         }))
@@ -134,14 +132,14 @@ export default async function HomePage({ params }: Props) {
                     </section>
                     )}
 
-                    {latest.length > 0 && (
+                    {articleStream.length > 0 && (
                     <section>
                         <h3 className="font-cinzel text-base tracking-widest font-black text-vintage-accent uppercase mb-5 pb-1 border-b-2 border-vintage-accent/20">
-                            {locale === 'zh' ? "最新深度报道" : "LATEST DISPATCHES"}
+                            {locale === 'zh' ? "全部文章" : "ALL DISPATCHES"}
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {latest.map((article) => (
+                            {articleStream.map((article) => (
                                 <Link
                                     key={article.id}
                                     href={`/article/${article.slug}`}

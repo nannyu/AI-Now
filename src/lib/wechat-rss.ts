@@ -96,6 +96,7 @@ export function injectAdminBootstrap(html: string, adminToken: string | undefine
     try { localStorage.setItem("wechat-rss-lite-admin-token", token); } catch (e) {}
   }
   window.__AINOW_WECHAT_RSS_TOKEN__ = ${tokenConfigured ? 'true' : 'false'};
+  window.__AINOW_WECHAT_RSS_PROXY_PREFIX__ = proxyPrefix;
   var nativeFetch = window.fetch;
   window.fetch = function (input, init) {
     init = init || {};

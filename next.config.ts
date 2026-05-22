@@ -1,9 +1,11 @@
-import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from 'next';
 
-const withNextIntl = createNextIntlPlugin();
-
 const nextConfig: NextConfig = {
+    turbopack: {
+        resolveAlias: {
+            'next-intl/config': './src/i18n/request.ts',
+        },
+    },
     images: {
         formats: ['image/avif', 'image/webp'] as const,
         remotePatterns: [
@@ -16,4 +18,4 @@ const nextConfig: NextConfig = {
     serverExternalPackages: ['better-sqlite3'],
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

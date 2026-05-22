@@ -1,8 +1,14 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/wechat-rss/poll",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "experimentalServices": {
-    "frontend": {
-      "routePrefix": "/",
-      "framework": "nextjs"
+    "web": {
+      "entrypoint": ".",
+      "routePrefix": "/"
     },
     "wechat-rss-lite": {
       "entrypoint": "services/wechat-rss-lite",

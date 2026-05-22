@@ -21,6 +21,27 @@ interface Source {
     created_at: string;
 }
 
+interface AdminJob {
+    id: string;
+    type: string;
+    status: string;
+    label: string;
+    total: number;
+    processed: number;
+    succeeded: number;
+    failed: number;
+    message: string;
+    error: string;
+    result?: {
+        added?: number;
+        skipped?: number;
+        failed?: number;
+        errors?: string[];
+        total?: number;
+        ingested?: number;
+    };
+}
+
 export function SourcesPanel() {
     const [sources, setSources] = useState<Source[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,6 +55,7 @@ export function SourcesPanel() {
     const [importOptions, setImportOptions] = useState<WechatSubscriptionOption[]>([]);
     const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
     const [importMessage, setImportMessage] = useState<string | null>(null);
+    const [activeJob, setActiveJob] = useState<AdminJob | null>(null);
 
     const loadSources = async () => {
         const res = await fetch('/api/admin/sources');
@@ -46,6 +68,8 @@ export function SourcesPanel() {
 
     useEffect(() => {
         loadSources();
+        void resumeLatestSourceJob();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const addSource = async (e: React.FormEvent) => {
@@ -129,45 +153,36 @@ export function SourcesPanel() {
 
         setImportLoading(true);
         setImportMessage(null);
-        let added = 0;
-        let skipped = 0;
-        let failed = 0;
-        const errors: string[] = [];
-
         try {
-            for (const item of selected) {
-                const exists = sources.some((source) => source.feed_url === item.feed_url);
-                if (exists) {
-                    skipped++;
-                    continue;
-                }
-
-                const res = await adminFetch('/api/admin/sources', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: item.title, feed_url: item.feed_url }),
-                });
-
-                if (res.ok) {
-                    added++;
-                } else if (res.status === 409) {
-                    skipped++;
-                } else {
-                    failed++;
-                    const data = (await res.json().catch(() => null)) as { error?: string } | null;
-                    errors.push(`${item.title}: ${data?.error || `HTTP ${res.status}`}`);
-                }
+            const res = await adminFetch('/api/admin/sources/import-wechat-subscriptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sources: selected }),
+            });
+            const data = await res.json().catch(() => null) as { error?: string; job?: AdminJob } | null;
+            if (!res.ok || !data?.job?.id) {
+                setImportMessage(data?.error || '导入任务创建失败。');
+                return;
             }
-        } catch (err: unknown) {
-            failed++;
-            const message = err instanceof Error ? err.message : '导入请求失败';
-            errors.push(message);
-        } finally {
-            const result = `已导入 ${added} 个来源，跳过 ${skipped} 个重复来源`;
-            setImportMessage(failed > 0 ? `${result}，失败 ${failed} 个：${errors.join('；')}` : `${result}。`);
-            setImportLoading(false);
+            setActiveJob(data.job);
+            setImportMessage('RSS 来源导入任务已在后台开始，可以切换页面。');
             setShowImport(false);
-            loadSources();
+            void pollAdminJob(data.job.id, (job) => {
+                const added = job.result?.added ?? job.succeeded;
+                const skipped = job.result?.skipped ?? 0;
+                const failed = job.result?.failed ?? job.failed;
+                setImportMessage(
+                    job.status === 'succeeded'
+                        ? `导入完成：新增 ${added} 个来源，跳过 ${skipped} 个重复来源，失败 ${failed} 个。`
+                        : `导入失败：${job.error || job.message}`
+                );
+                loadSources();
+            });
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : '导入请求失败';
+            setImportMessage(message);
+        } finally {
+            setImportLoading(false);
         }
     };
 
@@ -179,11 +194,26 @@ export function SourcesPanel() {
             const res = await adminFetch('/api/admin/fetch-source', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ source_id: id }),
+                body: JSON.stringify({ source_id: id, background: true }),
             });
 
             const data = await res.json();
             if (res.ok) {
+                if (data.job?.id) {
+                    setActiveJob(data.job);
+                    setFetchResult('抓取任务已在后台开始，可以切换页面。');
+                    void pollAdminJob(data.job.id, (job) => {
+                        const total = job.result?.total ?? job.total;
+                        const ingested = job.result?.ingested ?? job.succeeded;
+                        setFetchResult(
+                            job.status === 'succeeded'
+                                ? `已抓取 ${total} 篇文章：新增 ${ingested} 篇，跳过 ${job.result?.skipped ?? 0} 篇。`
+                                : `错误：${job.error || job.message}`
+                        );
+                        loadSources();
+                    });
+                    return;
+                }
                 setFetchResult(`已抓取 ${data.total} 篇文章：新增 ${data.ingested} 篇，跳过 ${data.skipped} 篇。`);
             } else {
                 setFetchResult(`错误：${data.error}`);
@@ -195,6 +225,35 @@ export function SourcesPanel() {
             setFetching(null);
             loadSources();
         }
+    };
+
+    const pollAdminJob = async (jobId: string, onDone?: (job: AdminJob) => void) => {
+        for (;;) {
+            const res = await fetch(`/api/admin/jobs/${encodeURIComponent(jobId)}`, { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const job = await res.json() as AdminJob;
+            setActiveJob(job);
+            if (job.status === 'succeeded' || job.status === 'failed') {
+                onDone?.(job);
+                return;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+    };
+
+    const resumeLatestSourceJob = async () => {
+        const res = await fetch('/api/admin/jobs?limit=10', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const jobs = await res.json() as AdminJob[];
+        const job = jobs.find((item) => (
+            ['wechat-subscriptions.import-sources', 'rss-source.fetch'].includes(item.type)
+            && !['succeeded', 'failed'].includes(item.status)
+        ));
+        if (!job) return;
+        setActiveJob(job);
+        void pollAdminJob(job.id, () => {
+            loadSources();
+        });
     };
 
     if (loading) return <p className="text-neutral-500">正在加载来源...</p>;
@@ -232,6 +291,10 @@ export function SourcesPanel() {
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
                     {importMessage}
                 </div>
+            )}
+
+            {activeJob && (
+                <JobProgress job={activeJob} />
             )}
 
             {showImport && importOptions.length > 0 && (
@@ -375,6 +438,38 @@ export function SourcesPanel() {
                     ))}
                 </div>
             )}
+        </div>
+    );
+}
+
+function JobProgress({ job }: { job: AdminJob }) {
+    const total = Math.max(job.total || 0, 0);
+    const processed = Math.max(job.processed || 0, 0);
+    const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : (job.status === 'succeeded' ? 100 : 0);
+    const statusClass = job.status === 'failed'
+        ? 'bg-red-50 text-red-700'
+        : job.status === 'succeeded'
+            ? 'bg-green-50 text-green-700'
+            : 'bg-blue-50 text-blue-700';
+    const barClass = job.status === 'failed' ? 'bg-red-500' : 'bg-brand-600';
+
+    return (
+        <div className="mb-4 p-4 bg-white border border-neutral-200 rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                <div>
+                    <p className="text-sm font-semibold text-neutral-900">{job.label}</p>
+                    <p className="text-xs text-neutral-500">{job.error || job.message || '后台任务运行中'}</p>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full w-fit ${statusClass}`}>
+                    {job.status === 'running' ? '运行中' : job.status === 'succeeded' ? '已完成' : job.status === 'failed' ? '失败' : '排队中'}
+                </span>
+            </div>
+            <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <div className={`h-full transition-all ${barClass}`} style={{ width: `${percent}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-neutral-500">
+                已处理 {processed}/{total || '-'}，成功 {job.succeeded}，失败 {job.failed}
+            </p>
         </div>
     );
 }
