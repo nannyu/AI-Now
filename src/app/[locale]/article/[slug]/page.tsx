@@ -10,7 +10,7 @@ interface Props {
 
 export default async function ArticlePage({ params }: Props) {
     const { slug } = await params;
-    const article = getDbArticleBySlug(slug);
+    const article = await getDbArticleBySlug(slug);
 
     if (!article) {
         notFound();
@@ -23,7 +23,7 @@ export default async function ArticlePage({ params }: Props) {
         }
     }
 
-    const related = getRelatedDbArticles(article, 4);
+    const related = await getRelatedDbArticles(article, 4);
 
     return (
         <div className="bg-vintage-bg">

@@ -1,4 +1,5 @@
 import { getDb } from './db';
+import { isPostgresEnabled, pgQuery } from './postgres';
 import { estimateReadingTime } from './content-converter';
 import { proxyWechatImages, publicImageProxyUrl } from './image-proxy';
 import { normalizeEscapedWhitespace, normalizeInlineWhitespace } from './text-normalize';
@@ -76,15 +77,36 @@ export function dbRowToArticle(row: DbArticleRow): DbArticle {
     };
 }
 
-export function getDbArticleBySlug(slug: string): DbArticle | undefined {
+export async function getDbArticleBySlug(slug: string): Promise<DbArticle | undefined> {
     const id = idFromSlug(slug);
+    if (isPostgresEnabled()) {
+        const { rows } = id
+            ? await pgQuery<DbArticleRow>('SELECT * FROM articles WHERE id = $1', [id])
+            : await pgQuery<DbArticleRow>('SELECT * FROM articles WHERE slug = $1', [slug]);
+        return rows[0] ? dbRowToArticle(rows[0]) : undefined;
+    }
+
     const row = id
         ? getDb().prepare('SELECT * FROM articles WHERE id = ?').get(id) as DbArticleRow | undefined
         : getDb().prepare('SELECT * FROM articles WHERE slug = ?').get(slug) as DbArticleRow | undefined;
     return row ? dbRowToArticle(row) : undefined;
 }
 
-export function getPublishedDbArticles(limit = 20): DbArticle[] {
+export async function getPublishedDbArticles(limit = 20): Promise<DbArticle[]> {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(
+            `
+                SELECT *
+                FROM articles
+                WHERE status = 'published'
+                ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+                LIMIT $1
+            `,
+            [limit]
+        );
+        return rows.map(dbRowToArticle);
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT *
@@ -98,7 +120,18 @@ export function getPublishedDbArticles(limit = 20): DbArticle[] {
     return rows.map(dbRowToArticle);
 }
 
-export function getFeaturedDbArticle(): DbArticle | undefined {
+export async function getFeaturedDbArticle(): Promise<DbArticle | undefined> {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(`
+            SELECT *
+            FROM articles
+            WHERE status = 'published'
+            ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC
+            LIMIT 1
+        `);
+        return rows[0] ? dbRowToArticle(rows[0]) : undefined;
+    }
+
     const row = getDb()
         .prepare(`
             SELECT *
@@ -112,7 +145,21 @@ export function getFeaturedDbArticle(): DbArticle | undefined {
     return row ? dbRowToArticle(row) : undefined;
 }
 
-export function getAllPublishedDbArticles(limit = 500): DbArticle[] {
+export async function getAllPublishedDbArticles(limit = 500): Promise<DbArticle[]> {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(
+            `
+                SELECT *
+                FROM articles
+                WHERE status = 'published'
+                ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+                LIMIT $1
+            `,
+            [limit]
+        );
+        return rows.map(dbRowToArticle);
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT *
@@ -126,7 +173,21 @@ export function getAllPublishedDbArticles(limit = 500): DbArticle[] {
     return rows.map(dbRowToArticle);
 }
 
-export function getLatestDbArticles(count = 10): DbArticle[] {
+export async function getLatestDbArticles(count = 10): Promise<DbArticle[]> {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(
+            `
+                SELECT *
+                FROM articles
+                WHERE status = 'published'
+                ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+                LIMIT $1
+            `,
+            [count]
+        );
+        return rows.map(dbRowToArticle);
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT *
@@ -140,8 +201,23 @@ export function getLatestDbArticles(count = 10): DbArticle[] {
     return rows.map(dbRowToArticle);
 }
 
-export function getDbArticlesByCategory(categorySlug: string, count = 100): DbArticle[] {
+export async function getDbArticlesByCategory(categorySlug: string, count = 100): Promise<DbArticle[]> {
     const category = categoryFromValue(categorySlug);
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(
+            `
+                SELECT *
+                FROM articles
+                WHERE status = 'published'
+                  AND COALESCE(NULLIF(category, ''), $1) = $2
+                ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+                LIMIT $3
+            `,
+            [DEFAULT_CATEGORY_SLUG, category.slug, count]
+        );
+        return rows.map(dbRowToArticle);
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT *
@@ -156,7 +232,25 @@ export function getDbArticlesByCategory(categorySlug: string, count = 100): DbAr
     return rows.map(dbRowToArticle);
 }
 
-export function getDbCategoryCounts() {
+export async function getDbCategoryCounts() {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<{ category: string; count: string }>(
+            `
+                SELECT COALESCE(NULLIF(category, ''), $1) as category, COUNT(*)::text as count
+                FROM articles
+                WHERE status = 'published'
+                GROUP BY COALESCE(NULLIF(category, ''), $2)
+            `,
+            [DEFAULT_CATEGORY_SLUG, DEFAULT_CATEGORY_SLUG]
+        );
+
+        return rows.reduce<Record<string, number>>((acc, row) => {
+            const category = categoryFromValue(row.category);
+            acc[category.slug] = (acc[category.slug] || 0) + Number(row.count);
+            return acc;
+        }, {});
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT COALESCE(NULLIF(category, ''), ?) as category, COUNT(*) as count
@@ -173,8 +267,24 @@ export function getDbCategoryCounts() {
     }, {});
 }
 
-export function getRelatedDbArticles(article: DbArticle, count = 4): DbArticle[] {
+export async function getRelatedDbArticles(article: DbArticle, count = 4): Promise<DbArticle[]> {
     const category = article.categories[0]?.slug || DEFAULT_CATEGORY_SLUG;
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<DbArticleRow>(
+            `
+                SELECT *
+                FROM articles
+                WHERE status = 'published'
+                  AND id != $1
+                  AND COALESCE(NULLIF(category, ''), $2) = $3
+                ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+                LIMIT $4
+            `,
+            [Number(article.id.replace(/^db-/, '')), DEFAULT_CATEGORY_SLUG, category, count]
+        );
+        return rows.map(dbRowToArticle);
+    }
+
     const rows = getDb()
         .prepare(`
             SELECT *

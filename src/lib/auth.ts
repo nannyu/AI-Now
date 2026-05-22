@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { getDb } from './db';
+import { isPostgresEnabled, pgQuery } from './postgres';
 import { hashPassword, verifyPassword } from './password';
 
 const COOKIE_NAME = 'ainow-admin-token';
@@ -77,6 +78,35 @@ export async function ensureCsrfToken() {
 }
 
 export async function signIn(username: string, password: string): Promise<boolean> {
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<AdminUser>('SELECT * FROM admin_users WHERE username = $1', [username]);
+        const user = rows[0];
+        if (!user || !verifyPassword(password, user.password_hash)) return false;
+
+        const token = await new SignJWT({ userId: Number(user.id), username: user.username })
+            .setProtectedHeader({ alg: 'HS256' })
+            .setExpirationTime('7d')
+            .sign(getJwtSecret());
+
+        const csrfToken = createCsrfToken();
+        const cookieStore = await cookies();
+        cookieStore.set(COOKIE_NAME, token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/',
+        });
+        cookieStore.set(CSRF_COOKIE_NAME, csrfToken, {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/',
+        });
+        return true;
+    }
+
     const db = getDb();
     const user = db.prepare('SELECT * FROM admin_users WHERE username = ?').get(username) as AdminUser | undefined;
 
@@ -117,9 +147,26 @@ export async function signOut() {
 }
 
 export async function registerReaderUser(username: string, email: string, password: string) {
-    const db = getDb();
     const normalizedUsername = username.trim();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<{ id: string; username: string; email: string }>(
+            `
+                INSERT INTO reader_users (username, email, password_hash)
+                VALUES ($1, $2, $3)
+                RETURNING id, username, email
+            `,
+            [normalizedUsername, normalizedEmail, hashPassword(password)]
+        );
+        return {
+            id: Number(rows[0].id),
+            username: rows[0].username,
+            email: rows[0].email,
+        };
+    }
+
+    const db = getDb();
 
     const result = db.prepare(`
         INSERT INTO reader_users (username, email, password_hash)
@@ -134,8 +181,28 @@ export async function registerReaderUser(username: string, email: string, passwo
 }
 
 export async function signInReader(usernameOrEmail: string, password: string): Promise<boolean> {
-    const db = getDb();
     const identifier = usernameOrEmail.trim();
+    if (isPostgresEnabled()) {
+        const { rows } = await pgQuery<ReaderUser>(
+            `
+                SELECT *
+                FROM reader_users
+                WHERE username = $1 OR email = $2
+            `,
+            [identifier, identifier.toLowerCase()]
+        );
+        const user = rows[0];
+        if (!user || !verifyPassword(password, user.password_hash)) return false;
+
+        await setReaderCookie({
+            id: Number(user.id),
+            username: user.username,
+            email: user.email,
+        });
+        return true;
+    }
+
+    const db = getDb();
     const user = db.prepare(`
         SELECT *
         FROM reader_users
@@ -169,7 +236,7 @@ export async function getReaderSession(): Promise<{ userId: number; username: st
         const { payload } = await jwtVerify(token, getJwtSecret());
         if (payload.role !== 'reader') return null;
         return {
-            userId: payload.readerUserId as number,
+            userId: Number(payload.readerUserId),
             username: payload.username as string,
             email: payload.email as string,
         };
@@ -198,7 +265,7 @@ export async function getSession(): Promise<{ userId: number; username: string }
     try {
         const { payload } = await jwtVerify(token, getJwtSecret());
         return {
-            userId: payload.userId as number,
+            userId: Number(payload.userId),
             username: payload.username as string,
         };
     } catch {

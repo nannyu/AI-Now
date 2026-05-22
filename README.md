@@ -24,7 +24,7 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 
 ### Backend
 - **wechat-rss-lite Integration** — Fetches and parses RSS feeds from WeChat public accounts
-- **SQLite Database** — Lightweight storage for articles, sources, categories, admin users, reader users, and comments
+- **Database** — Uses SQLite for local development and can use Supabase/Postgres in production through `DATABASE_URL`
 - **Content Pipeline** — Strips WeChat styling, preserves semantic structure, extracts cover images and summaries
 - **Auth & Session APIs** — Separate admin and reader sessions with HTTP-only JWT cookies
 
@@ -36,7 +36,7 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 | Language | TypeScript |
 | Styling | Tailwind CSS 3 |
 | i18n | next-intl |
-| Database | SQLite (better-sqlite3) |
+| Database | SQLite (better-sqlite3) locally; Postgres/Supabase via `pg` in production |
 | Auth | JWT (jose) |
 | Icons | Lucide React |
 | Fonts | next/font Google fonts (Inter, Cinzel, Playfair Display, Plus Jakarta Sans, Fira Code, ZCOOL XiaoWei, Noto Serif SC) |
@@ -64,6 +64,8 @@ ADMIN_PASSWORD="replace-with-a-strong-password"
 ALLOW_PRIVATE_FEED_URLS="true"
 WECHAT_RSS_BASE_URL="http://127.0.0.1:8081"
 WECHAT_RSS_ADMIN_TOKEN=""
+# Optional: use Supabase/Postgres instead of local SQLite
+DATABASE_URL=""
 ```
 
 `ALLOW_PRIVATE_FEED_URLS` is useful when developing against a local wechat-rss-lite service. Do not enable it in production.
@@ -111,6 +113,12 @@ Readers can register or log in from the site header or directly from the article
 - publish comments on article detail pages
 
 Reader sessions are stored in HTTP-only cookies and use the same `JWT_SECRET` as the admin session system.
+
+### Production Database
+
+Local development works with SQLite through `better-sqlite3`. On Vercel, the writable filesystem is temporary, so SQLite files under `/tmp` are only a short-term fallback and should not be treated as durable storage.
+
+For production, set `DATABASE_URL` to a Supabase/Postgres connection string. When `DATABASE_URL` is present, the Next.js app stores articles, sources, categories, admin users, reader users, and comments in Postgres. Keep the connection string server-side only and do not expose it to browser code.
 
 ### Build
 
@@ -171,10 +179,11 @@ Production deployment checklist:
 3. Set `ADMIN_API_TOKEN` for the wechat-rss-lite service and set `WECHAT_RSS_ADMIN_TOKEN` in the frontend to the same value.
 4. Set `WECHAT_RSS_BASE_URL` to the deployed service path, for example `https://<project-domain>/_/wechat-rss-lite`.
 5. Set `SITE_URL` for wechat-rss-lite to the same deployed service path so RSS and admin URLs are generated correctly.
-6. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
-7. Run `npm run build` before publishing.
+6. Set `DATABASE_URL` to a Supabase/Postgres connection string for durable Next.js app data.
+7. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
+8. Run `npm run build` before publishing.
 
-The default setup stores content in SQLite through `better-sqlite3`. For durable production data on serverless hosting, mount or provision persistent storage, or move the database layer to a managed service.
+If `DATABASE_URL` is omitted, Vercel can only use a temporary SQLite file under `/tmp`; data may disappear after instance recycling, cold starts, or redeployments. The wechat-rss-lite service also needs its own durable storage configuration before relying on it for production subscriptions/history.
 
 ## License
 

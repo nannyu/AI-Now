@@ -13,8 +13,8 @@ export default async function HomePage({ params }: Props) {
     const t = await getTranslations({ locale, namespace: 'home' });
     const newsT = await getTranslations({ locale, namespace: 'newsletter' });
 
-    const featured = getFeaturedDbArticle();
-    const latestArticles = getLatestDbArticles(8);
+    const featured = await getFeaturedDbArticle();
+    const latestArticles = await getLatestDbArticles(8);
     const latest = latestArticles
         .filter((article) => !featured || article.id !== featured.id)
         .slice(0, 5);

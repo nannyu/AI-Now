@@ -8,7 +8,7 @@ interface Props {
 
 export default async function CategoriesPage({ params }: Props) {
     const { locale } = await params;
-    const dbCounts = getDbCategoryCounts();
+    const dbCounts = await getDbCategoryCounts();
     const categoriesWithCount = localizedCategories(locale).map((cat) => ({
         ...cat,
         articleCount: dbCounts[cat.slug] || 0,

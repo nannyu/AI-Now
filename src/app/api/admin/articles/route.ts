@@ -3,9 +3,10 @@ import { getSession, requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { sanitizeArticleHtml } from '@/lib/html-sanitizer';
 import { dbArticleSlug } from '@/lib/db-articles';
-import { insertArticleDraft } from '@/lib/article-ingest';
+import { insertArticleDraft, insertArticleDraftPg } from '@/lib/article-ingest';
 import { normalizeCategorySlug } from '@/lib/article-categories';
 import { isArticleStatus } from '@/lib/article-status';
+import { isPostgresEnabled, pgQuery } from '@/lib/postgres';
 
 type CountRow = {
     total: number;
@@ -37,6 +38,40 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
+
+    if (isPostgresEnabled()) {
+        await pgQuery("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= ((now() AT TIME ZONE 'utc') - interval '30 days')::text");
+
+        const values: unknown[] = [];
+        const where = status ? 'WHERE status = $1' : "WHERE status != 'trash'";
+        if (status) values.push(status);
+
+        const articlesResult = await pgQuery<{ id: string; slug?: string | null }>(
+            `
+                SELECT *
+                FROM articles
+                ${where}
+                ORDER BY COALESCE(deleted_at, publish_date, crawled_at, updated_at) DESC
+                LIMIT $${values.length + 1} OFFSET $${values.length + 2}
+            `,
+            [...values, limit, offset]
+        );
+        const countResult = await pgQuery<CountRow>(
+            `SELECT COUNT(*)::int as total FROM articles ${where}`,
+            values
+        );
+        const articles = articlesResult.rows.map((article) => ({
+            ...article,
+            id: Number(article.id),
+            slug: article.slug || dbArticleSlug(article.id),
+        }));
+        const total = countResult.rows[0]?.total ?? 0;
+
+        return NextResponse.json({
+            articles,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        });
+    }
 
     const db = getDb();
     db.exec("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= datetime('now', '-30 days')");
@@ -82,8 +117,6 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: 'Article ID is required' }, { status: 400 });
     }
 
-    const db = getDb();
-
     if (Array.isArray(ids) && ids.length > 0) {
         const nextStatus = typeof updates.status === 'string' ? updates.status : null;
         if (!nextStatus) {
@@ -96,6 +129,47 @@ export async function PATCH(request: NextRequest) {
         if (cleanIds.length === 0) {
             return NextResponse.json({ error: 'Valid article IDs are required' }, { status: 400 });
         }
+
+        if (isPostgresEnabled()) {
+            if (nextStatus === 'published') {
+                await pgQuery(
+                    `
+                        UPDATE articles
+                        SET
+                            status = $1,
+                            publish_date = CASE
+                                WHEN source_url LIKE 'manual:%' THEN COALESCE(publish_date, $2)
+                                ELSE publish_date
+                            END,
+                            deleted_at = NULL,
+                            updated_at = (now() AT TIME ZONE 'utc')::text
+                        WHERE id = ANY($3::bigint[])
+                    `,
+                    [nextStatus, new Date().toISOString(), cleanIds]
+                );
+            } else if (nextStatus === 'trash') {
+                await pgQuery(
+                    `
+                        UPDATE articles
+                        SET status = $1, is_featured = 0, deleted_at = (now() AT TIME ZONE 'utc')::text, updated_at = (now() AT TIME ZONE 'utc')::text
+                        WHERE id = ANY($2::bigint[])
+                    `,
+                    [nextStatus, cleanIds]
+                );
+            } else {
+                await pgQuery(
+                    `
+                        UPDATE articles
+                        SET status = $1, deleted_at = NULL, updated_at = (now() AT TIME ZONE 'utc')::text
+                        WHERE id = ANY($2::bigint[])
+                    `,
+                    [nextStatus, cleanIds]
+                );
+            }
+            return NextResponse.json({ success: true, updated: cleanIds.length });
+        }
+
+        const db = getDb();
         const placeholders = cleanIds.map(() => '?').join(',');
         if (nextStatus === 'published') {
             db.prepare(`
@@ -125,6 +199,68 @@ export async function PATCH(request: NextRequest) {
         }
         return NextResponse.json({ success: true, updated: cleanIds.length });
     }
+
+    if (isPostgresEnabled()) {
+        const fields: string[] = [];
+        const values: unknown[] = [];
+        const shouldEnsurePublishDate = updates.status === 'published' && updates.publish_date === undefined;
+        const allowedFields = ['title', 'summary', 'body', 'author', 'cover_image', 'category', 'status', 'is_featured', 'publish_date'];
+
+        for (const [key, value] of Object.entries(updates)) {
+            if (allowedFields.includes(key)) {
+                if (key === 'status' && typeof value === 'string' && !isArticleStatus(value)) {
+                    return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
+                }
+                try {
+                    values.push(
+                        key === 'body' && typeof value === 'string'
+                            ? sanitizeArticleHtml(value)
+                            : key === 'category' && typeof value === 'string'
+                                ? normalizeCategorySlug(value)
+                                : key === 'publish_date'
+                                    ? normalizeEditablePublishDate(value)
+                                    : value
+                    );
+                } catch {
+                    return NextResponse.json({ error: 'Invalid publish_date value' }, { status: 400 });
+                }
+                fields.push(`${key} = $${values.length}`);
+            }
+        }
+
+        if (typeof updates.status === 'string') {
+            if (updates.status === 'trash') {
+                fields.push("deleted_at = (now() AT TIME ZONE 'utc')::text");
+                fields.push('is_featured = 0');
+            } else {
+                fields.push('deleted_at = NULL');
+            }
+        }
+
+        if (shouldEnsurePublishDate) {
+            values.push(new Date().toISOString());
+            fields.push(`
+                publish_date = CASE
+                    WHEN source_url LIKE 'manual:%' THEN COALESCE(publish_date, $${values.length})
+                    ELSE publish_date
+                END
+            `);
+        }
+
+        if (fields.length === 0) {
+            return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+        }
+
+        fields.push("updated_at = (now() AT TIME ZONE 'utc')::text");
+        values.push(id);
+        const { rows } = await pgQuery(
+            `UPDATE articles SET ${fields.join(', ')} WHERE id = $${values.length} RETURNING *`,
+            values
+        );
+        return NextResponse.json(rows[0]);
+    }
+
+    const db = getDb();
 
     // Build dynamic update query
     const fields: string[] = [];
@@ -195,8 +331,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const db = getDb();
-    const result = insertArticleDraft(db, {
+    const draft = {
         sourceUrl: body.source_url || `manual:${crypto.randomUUID()}`,
         title: body.title || '',
         summary: body.summary || '',
@@ -205,13 +340,18 @@ export async function POST(request: NextRequest) {
         coverImage: body.cover_image || '',
         category: body.category || '',
         publishDate: null,
-    });
+    };
+    const result = isPostgresEnabled()
+        ? await insertArticleDraftPg(draft)
+        : insertArticleDraft(getDb(), draft);
 
     if (!result.inserted) {
         return NextResponse.json({ error: 'Article already exists or title is empty' }, { status: 400 });
     }
 
-    const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(result.id);
+    const article = isPostgresEnabled()
+        ? (await pgQuery('SELECT * FROM articles WHERE id = $1', [result.id])).rows[0]
+        : getDb().prepare('SELECT * FROM articles WHERE id = ?').get(result.id);
     return NextResponse.json(article, { status: 201 });
 }
 
@@ -227,12 +367,22 @@ export async function DELETE(request: NextRequest) {
 
     const ids = searchParams.get('ids');
 
-    const db = getDb();
     if (ids) {
         const cleanIds = ids.split(',').map(Number).filter(Number.isFinite);
         if (cleanIds.length === 0) return NextResponse.json({ error: 'Valid IDs are required' }, { status: 400 });
+        if (isPostgresEnabled()) {
+            await pgQuery(
+                `
+                    UPDATE articles
+                    SET status = 'trash', is_featured = 0, deleted_at = (now() AT TIME ZONE 'utc')::text, updated_at = (now() AT TIME ZONE 'utc')::text
+                    WHERE id = ANY($1::bigint[])
+                `,
+                [cleanIds]
+            );
+            return NextResponse.json({ success: true, deleted: cleanIds.length });
+        }
         const placeholders = cleanIds.map(() => '?').join(',');
-        db.prepare(`
+        getDb().prepare(`
             UPDATE articles
             SET status = 'trash', is_featured = 0, deleted_at = datetime('now'), updated_at = datetime('now')
             WHERE id IN (${placeholders})
@@ -242,7 +392,19 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
-    db.prepare(`
+    if (isPostgresEnabled()) {
+        await pgQuery(
+            `
+                UPDATE articles
+                SET status = 'trash', is_featured = 0, deleted_at = (now() AT TIME ZONE 'utc')::text, updated_at = (now() AT TIME ZONE 'utc')::text
+                WHERE id = $1
+            `,
+            [id]
+        );
+        return NextResponse.json({ success: true });
+    }
+
+    getDb().prepare(`
         UPDATE articles
         SET status = 'trash', is_featured = 0, deleted_at = datetime('now'), updated_at = datetime('now')
         WHERE id = ?

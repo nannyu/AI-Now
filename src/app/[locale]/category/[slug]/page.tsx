@@ -20,7 +20,7 @@ export default async function CategoryPage({ params }: Props) {
     return (
         <CategoryDetailContent
             category={category}
-            articles={getDbArticlesByCategory(slug)}
+            articles={await getDbArticlesByCategory(slug)}
         />
     );
 }

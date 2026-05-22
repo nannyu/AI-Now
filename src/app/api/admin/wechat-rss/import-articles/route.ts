@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
-import { insertArticleDrafts, type ArticleDraftInput } from '@/lib/article-ingest';
+import { insertArticleDrafts, insertArticleDraftsPg, type ArticleDraftInput } from '@/lib/article-ingest';
 import { unwrapAdminImageProxyUrls } from '@/lib/image-proxy';
 import { getWechatRssBaseUrl, rewriteWechatRssJsonUrls, wechatRssAuthHeaders } from '@/lib/wechat-rss';
+import { isPostgresEnabled } from '@/lib/postgres';
 
 type WechatSubscription = {
     id: string;
@@ -106,7 +107,9 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        const result = insertArticleDrafts(getDb(), drafts);
+        const result = isPostgresEnabled()
+            ? await insertArticleDraftsPg(drafts)
+            : insertArticleDrafts(getDb(), drafts);
 
         return NextResponse.json({
             success: errors.length === 0,

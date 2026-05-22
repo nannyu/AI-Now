@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getReaderSession, refreshReaderSession, requireReaderRequest } from '@/lib/auth';
 import { hashPassword } from '@/lib/password';
+import { isPostgresEnabled, pgQuery } from '@/lib/postgres';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,7 +18,6 @@ export async function GET() {
             username: session.username,
             email: session.email,
         },
-        emailVerificationPlanned: true,
     });
 }
 
@@ -44,27 +44,56 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: '新密码至少需要 8 个字符。' }, { status: 400 });
     }
 
-    const db = getDb();
     try {
-        if (password) {
-            db.prepare(`
-                UPDATE reader_users
-                SET username = ?, email = ?, password_hash = ?, updated_at = datetime('now')
-                WHERE id = ?
-            `).run(username, email, hashPassword(password), session.userId);
-        } else {
-            db.prepare(`
-                UPDATE reader_users
-                SET username = ?, email = ?, updated_at = datetime('now')
-                WHERE id = ?
-            `).run(username, email, session.userId);
-        }
+        let updated: { id: number; username: string; email: string };
 
-        const updated = db.prepare(`
-            SELECT id, username, email
-            FROM reader_users
-            WHERE id = ?
-        `).get(session.userId) as { id: number; username: string; email: string };
+        if (isPostgresEnabled()) {
+            const result = password
+                ? await pgQuery<{ id: string; username: string; email: string }>(
+                    `
+                        UPDATE reader_users
+                        SET username = $1, email = $2, password_hash = $3, updated_at = (now() AT TIME ZONE 'utc')::text
+                        WHERE id = $4
+                        RETURNING id, username, email
+                    `,
+                    [username, email, hashPassword(password), session.userId]
+                )
+                : await pgQuery<{ id: string; username: string; email: string }>(
+                    `
+                        UPDATE reader_users
+                        SET username = $1, email = $2, updated_at = (now() AT TIME ZONE 'utc')::text
+                        WHERE id = $3
+                        RETURNING id, username, email
+                    `,
+                    [username, email, session.userId]
+                );
+            updated = {
+                id: Number(result.rows[0].id),
+                username: result.rows[0].username,
+                email: result.rows[0].email,
+            };
+        } else {
+            const db = getDb();
+            if (password) {
+                db.prepare(`
+                    UPDATE reader_users
+                    SET username = ?, email = ?, password_hash = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                `).run(username, email, hashPassword(password), session.userId);
+            } else {
+                db.prepare(`
+                    UPDATE reader_users
+                    SET username = ?, email = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                `).run(username, email, session.userId);
+            }
+
+            updated = db.prepare(`
+                SELECT id, username, email
+                FROM reader_users
+                WHERE id = ?
+            `).get(session.userId) as { id: number; username: string; email: string };
+        }
 
         await refreshReaderSession(updated);
         return NextResponse.json({
@@ -73,11 +102,10 @@ export async function PATCH(request: NextRequest) {
                 username: updated.username,
                 email: updated.email,
             },
-            emailVerificationPlanned: true,
         });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '';
-        if (message.includes('UNIQUE')) {
+        if (message.includes('UNIQUE') || message.includes('duplicate key')) {
             return NextResponse.json({ error: '用户名或邮箱已被占用。' }, { status: 409 });
         }
         return NextResponse.json({ error: '保存失败，请稍后重试。' }, { status: 500 });

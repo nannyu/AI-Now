@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             authenticated: true,
             user: { username: cleanUsername, email: cleanEmail },
-            emailVerificationPlanned: true,
         }, { status: 201 });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : '';

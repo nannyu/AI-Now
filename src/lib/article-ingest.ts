@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { isPostgresEnabled, pgQuery, pgTransaction } from './postgres';
 import { convertWechatContent, extractCoverImage, extractSummary } from './content-converter';
 import { sanitizeArticleHtml } from './html-sanitizer';
 import { proxyWechatImages, publicImageProxyUrl, unwrapAdminImageProxyUrls } from './image-proxy';
@@ -112,6 +113,81 @@ export function insertArticleDraft(db: Database.Database, input: ArticleDraftInp
     };
 }
 
+type PgArticleQuery = typeof pgQuery;
+
+export async function insertArticleDraftPg(input: ArticleDraftInput, query: PgArticleQuery = pgQuery) {
+    if (!isPostgresEnabled()) {
+        throw new Error('DATABASE_URL is required for Postgres article ingest');
+    }
+
+    const draft = normalizeArticleDraft(input);
+    if (!draft.title || !draft.sourceUrl) {
+        return { inserted: false, id: null };
+    }
+
+    const result = await query<{ id: string }>(
+        `
+            INSERT INTO articles (
+                source_id,
+                source_url,
+                title,
+                summary,
+                body,
+                author,
+                cover_image,
+                category,
+                status,
+                publish_date
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9)
+            ON CONFLICT (source_url) DO NOTHING
+            RETURNING id::text as id
+        `,
+        [
+            draft.sourceId,
+            draft.sourceUrl,
+            draft.title,
+            draft.summary,
+            sanitizeArticleHtml(draft.body),
+            draft.author,
+            draft.coverImage,
+            draft.category,
+            draft.publishDate,
+        ]
+    );
+
+    const inserted = result.rows[0];
+    if (!inserted) {
+        if (draft.publishDate) {
+            await query(
+                `
+                    UPDATE articles
+                    SET publish_date = COALESCE(NULLIF(publish_date, ''), $1)
+                    WHERE source_url = $2
+                `,
+                [draft.publishDate, draft.sourceUrl]
+            );
+        }
+        if (draft.author && draft.author !== 'AI Roar') {
+            await query(
+                `
+                    UPDATE articles
+                    SET author = $1
+                    WHERE source_url = $2
+                      AND source_url NOT LIKE 'seed:%'
+                      AND source_url NOT LIKE 'manual:%'
+                `,
+                [draft.author, draft.sourceUrl]
+            );
+        }
+    }
+
+    return {
+        inserted: Boolean(inserted),
+        id: inserted ? Number(inserted.id) : null,
+    };
+}
+
 export function insertArticleDrafts(db: Database.Database, inputs: ArticleDraftInput[]): IngestResult {
     let ingested = 0;
     let skipped = 0;
@@ -128,5 +204,23 @@ export function insertArticleDrafts(db: Database.Database, inputs: ArticleDraftI
     });
 
     insertMany(inputs);
+    return { ingested, skipped };
+}
+
+export async function insertArticleDraftsPg(inputs: ArticleDraftInput[]): Promise<IngestResult> {
+    let ingested = 0;
+    let skipped = 0;
+
+    await pgTransaction(async (query) => {
+        for (const item of inputs) {
+            const result = await insertArticleDraftPg(item, query);
+            if (result.inserted) {
+                ingested++;
+            } else {
+                skipped++;
+            }
+        }
+    });
+
     return { ingested, skipped };
 }

@@ -3,7 +3,8 @@ import { requireAdminRequest } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { validateFeedUrl } from '@/lib/url-security';
 import { isWechatRssFeedUrl, wechatRssAuthHeaders } from '@/lib/wechat-rss';
-import { insertArticleDrafts } from '@/lib/article-ingest';
+import { insertArticleDrafts, insertArticleDraftsPg } from '@/lib/article-ingest';
+import { isPostgresEnabled, pgQuery } from '@/lib/postgres';
 
 type RssSource = {
     name: string;
@@ -41,10 +42,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'source_id must be a valid number' }, { status: 400 });
     }
 
-    const db = getDb();
-    const source = db.prepare<unknown[], RssSource>(
-        'SELECT name, feed_url FROM rss_sources WHERE id = ?'
-    ).get(sourceId);
+    const db = isPostgresEnabled() ? null : getDb();
+    const source = isPostgresEnabled()
+        ? (await pgQuery<RssSource>('SELECT name, feed_url FROM rss_sources WHERE id = $1', [sourceId])).rows[0]
+        : db!.prepare<unknown[], RssSource>(
+            'SELECT name, feed_url FROM rss_sources WHERE id = ?'
+        ).get(sourceId);
 
     if (!source) {
         return NextResponse.json({ error: 'Source not found' }, { status: 404 });
@@ -76,9 +79,7 @@ export async function POST(request: NextRequest) {
         // Parse RSS/XML feed
         const articles = parseRssFeed(feedText);
 
-        const { ingested, skipped } = insertArticleDrafts(
-            db,
-            articles.map((article) => ({
+        const drafts = articles.map((article) => ({
                 sourceId,
                 sourceUrl: article.link,
                 title: article.title,
@@ -87,11 +88,18 @@ export async function POST(request: NextRequest) {
                 author: article.author || source.name,
                 coverImage: article.image,
                 publishDate: article.pubDate,
-            }))
-        );
+            }));
+
+        const { ingested, skipped } = isPostgresEnabled()
+            ? await insertArticleDraftsPg(drafts)
+            : insertArticleDrafts(db!, drafts);
 
         // Update last fetched time
-        db.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(sourceId);
+        if (isPostgresEnabled()) {
+            await pgQuery("UPDATE rss_sources SET last_fetched_at = (now() AT TIME ZONE 'utc')::text WHERE id = $1", [sourceId]);
+        } else {
+            db!.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(sourceId);
+        }
 
         return NextResponse.json({
             success: true,
