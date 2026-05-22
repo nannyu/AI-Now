@@ -55,7 +55,7 @@ export function dbRowToArticle(row: DbArticleRow): DbArticle {
     const body = proxyWechatImages(sanitizeStoredBody(row.body));
     const summary = normalizeInlineWhitespace(row.summary);
     const bodyText = stripHtml(body);
-    const publishDate = row.publish_date || row.crawled_at || row.updated_at || new Date().toISOString();
+    const publishDate = row.publish_date || row.crawled_at || row.updated_at || '';
     const slug = row.slug || dbArticleSlug(row.id);
 
     return {
@@ -118,7 +118,7 @@ export function getAllPublishedDbArticles(limit = 500): DbArticle[] {
             SELECT *
             FROM articles
             WHERE status = 'published'
-            ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+            ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC
             LIMIT ?
         `)
         .all(limit) as DbArticleRow[];
@@ -132,7 +132,7 @@ export function getLatestDbArticles(count = 10): DbArticle[] {
             SELECT *
             FROM articles
             WHERE status = 'published'
-            ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+            ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC
             LIMIT ?
         `)
         .all(count) as DbArticleRow[];
@@ -148,7 +148,7 @@ export function getDbArticlesByCategory(categorySlug: string, count = 100): DbAr
             FROM articles
             WHERE status = 'published'
               AND COALESCE(NULLIF(category, ''), ?) = ?
-            ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC
+            ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC
             LIMIT ?
         `)
         .all(DEFAULT_CATEGORY_SLUG, category.slug, count) as DbArticleRow[];

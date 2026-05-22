@@ -6,6 +6,7 @@ import type { Article } from '@/lib/mock-data';
 import { ReadingProgress } from './ReadingProgress';
 import { ShareButtons } from './ShareButtons';
 import { Clock, Calendar, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { formatArticleDate } from '@/lib/format-date';
 
 interface Props {
     article: Article;
@@ -15,14 +16,6 @@ export function ArticleContent({ article }: Props) {
     const home = useTranslations('home');
     const locale = useLocale();
     const bodyIsHtml = /<\/?[a-z][\s\S]*>/i.test(article.body);
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    };
 
     // Split body text by newlines into paragraphs
     const paragraphs = article.body ? article.body.split(/\n+/) : [];
@@ -64,7 +57,7 @@ export function ArticleContent({ article }: Props) {
                             </span>
                             <span className="flex items-center gap-1 font-semibold">
                                 <Calendar className="w-3.5 h-3.5" />
-                                {formatDate(article.publishDate)}
+                                {formatArticleDate(article.publishDate, locale)}
                             </span>
                         </div>
 
@@ -132,14 +125,14 @@ export function ArticleContent({ article }: Props) {
                     <aside className="lg:col-span-4 lg:border-l lg:border-vintage-border lg:pl-6 space-y-6 pt-2">
                         
                         {/* Conditionally display Startup Spotlight if present */}
-                        {article.startup ? (
+                        {article.startup && (
                             <div className="bg-vintage-panel/50 border border-vintage-border p-4 rounded-sm">
                                 <div className="flex items-center gap-1.5 pb-2 border-b border-vintage-border text-vintage-accent">
                                     <h3 className="font-cinzel text-[11px] font-black tracking-wider uppercase">
                                         {locale === 'zh' ? "被投初创公司情报" : "COMPANY IN SPOTLIGHT"}
                                     </h3>
                                 </div>
-                                
+
                                 <div className="mt-4 space-y-3 font-sans-intel">
                                     <div>
                                         <label className="text-[9px] font-mono-raw font-bold text-vintage-text/50 block uppercase">Spotlight Entity</label>
@@ -177,20 +170,6 @@ export function ArticleContent({ article }: Props) {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            // Fallback spotlit list if article doesn't specify one
-                            <div className="bg-vintage-panel/50 border border-vintage-border p-4 rounded-sm">
-                                <div className="flex items-center gap-1.5 pb-2 border-b border-vintage-border text-vintage-accent">
-                                    <h3 className="font-cinzel text-[11px] font-black tracking-wider uppercase">
-                                        {locale === 'zh' ? "华夏AI独角兽名册" : "STARTUP INTELLIGENCE"}
-                                    </h3>
-                                </div>
-                                <p className="text-[10px] leading-relaxed text-vintage-text/75 mt-3 font-sans-intel">
-                                    {locale === 'zh'
-                                        ? "点击左上角 AI NOW 标志返回首页查看详细的独角兽情报面板。"
-                                        : "Click the brand logo at the top left to return home and check full startup ledgers."}
-                                </p>
                             </div>
                         )}
 

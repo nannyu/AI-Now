@@ -8,6 +8,12 @@ export function unwrapAdminImageProxyUrls(value: string) {
     });
 }
 
+/** Resolve cover/thumbnail URLs for admin and reader UIs (WeChat CDN needs proxy). */
+export function resolveArticleCoverUrl(value: string) {
+    if (!value) return '';
+    return publicImageProxyUrl(unwrapAdminImageProxyUrls(value));
+}
+
 export function publicImageProxyUrl(value: string) {
     if (!value) return '';
     const normalizedProxyUrl = normalizePublicProxyPath(value);

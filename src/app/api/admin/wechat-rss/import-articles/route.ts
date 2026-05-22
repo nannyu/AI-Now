@@ -45,15 +45,16 @@ async function fetchJson<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 function toDraft(article: WechatArticle, subscription: WechatSubscription): ArticleDraftInput {
     const firstImage = article.images?.[0]?.url || '';
+    const accountName = subscription.title.trim() || article.account_name?.trim() || '';
     return {
         sourceUrl: article.url,
         title: article.title,
         summary: article.summary || article.text?.slice(0, 220) || '',
         body: unwrapAdminImageProxyUrls(article.content_html || article.text || article.summary || ''),
-        author: article.author || article.account_name || subscription.title,
+        author: accountName,
         coverImage: unwrapAdminImageProxyUrls(firstImage),
         category: subscription.title,
-        publishDate: article.published_at || new Date().toISOString(),
+        publishDate: article.published_at ?? null,
     };
 }
 

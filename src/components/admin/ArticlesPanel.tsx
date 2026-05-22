@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Download, Eye, FileText, Pencil, Plus, RotateCcw, Send, Trash2, Check, X } from 'lucide-react';
+import { Download, Eye, FileText, Pencil, Pin, Plus, RotateCcw, Send, Trash2, Check, X } from 'lucide-react';
 import { ArticleEditor } from './ArticleEditor';
 import { adminFetch } from '@/lib/admin-api-client';
+import { resolveArticleCoverUrl } from '@/lib/image-proxy';
+import { formatArticleDate } from '@/lib/format-date';
 import { categories, getLocalizedCategoryName } from '@/lib/mock-data';
 import clsx from 'clsx';
 
@@ -92,6 +94,24 @@ export function ArticlesPanel() {
                 status,
             }),
         });
+        loadArticles(pagination.page);
+    };
+
+    const toggleArticlePin = async (article: Article) => {
+        const nextFeatured = article.is_featured === 1 ? 0 : 1;
+        const res = await adminFetch('/api/admin/articles', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: article.id,
+                is_featured: nextFeatured,
+            }),
+        });
+        if (!res.ok) {
+            setMessage('置顶操作失败，请重试。');
+            return;
+        }
+        setMessage(nextFeatured ? `已置顶：${article.title}` : `已取消置顶：${article.title}`);
         loadArticles(pagination.page);
     };
 
@@ -494,7 +514,11 @@ export function ArticlesPanel() {
                                 {/* Thumbnail */}
                                 {article.cover_image && (
                                     <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-neutral-100">
-                                        <img src={article.cover_image} alt="" className="w-full h-full object-cover" />
+                                        <img
+                                            src={resolveArticleCoverUrl(article.cover_image)}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                        />
                                     </div>
                                 )}
 
@@ -541,6 +565,21 @@ export function ArticlesPanel() {
                                             title="撤回为草稿"
                                         >
                                             <RotateCcw className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    {article.status === 'published' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleArticlePin(article)}
+                                            className={clsx(
+                                                'p-2 rounded-lg transition-colors',
+                                                article.is_featured === 1
+                                                    ? 'text-brand-700 bg-brand-50 hover:bg-brand-100'
+                                                    : 'text-neutral-500 hover:text-brand-600 hover:bg-brand-50'
+                                            )}
+                                            title={article.is_featured === 1 ? '取消置顶' : '置顶'}
+                                        >
+                                            <Pin className={clsx('w-4 h-4', article.is_featured === 1 && 'fill-current')} />
                                         </button>
                                     )}
                                     <button
@@ -629,7 +668,7 @@ function ArticleSummary({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-neutral-400">
                 <span className="truncate max-w-full">{article.author}</span>
                 {categoryName && <span>· {categoryName}</span>}
-                {displayDate && <span>· {new Date(displayDate).toLocaleDateString()}</span>}
+                {displayDate && <span>· {formatArticleDate(displayDate, 'zh')}</span>}
             </div>
         </>
     );

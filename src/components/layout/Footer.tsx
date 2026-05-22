@@ -3,7 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 
-export function Footer() {
+interface FooterProps {
+    year: number;
+}
+
+export function Footer({ year }: FooterProps) {
     const t = useTranslations('footer');
     const nav = useTranslations('nav');
 
@@ -99,7 +103,7 @@ export function Footer() {
             {/* Bottom copyright broadsheet bar */}
             <div className="border-t border-vintage-border py-4 flex flex-col md:flex-row items-center justify-between text-[11px] text-vintage-text/50 font-mono-raw tracking-wide gap-2">
                 <div>
-                    {t('copyright', { year: new Date().getFullYear() })}
+                    {t('copyright', { year })}
                 </div>
                 <div className="flex items-center gap-4">
                     <Link

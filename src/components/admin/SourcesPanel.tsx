@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, RefreshCw, ToggleLeft, ToggleRight, Rss, Download } from 'lucide-react';
 import { adminFetch } from '@/lib/admin-api-client';
+import { formatArticleDateTime } from '@/lib/format-date';
 
 interface WechatSubscriptionOption {
     id: string;
@@ -341,7 +342,7 @@ export function SourcesPanel() {
                                 <p className="text-xs text-neutral-500 truncate mt-0.5">{source.feed_url}</p>
                                 {source.last_fetched_at && (
                                     <p className="text-xs text-neutral-400 mt-0.5">
-                                        上次抓取：{new Date(source.last_fetched_at).toLocaleString()}
+                                        上次抓取：{formatArticleDateTime(source.last_fetched_at, 'zh')}
                                     </p>
                                 )}
                             </div>

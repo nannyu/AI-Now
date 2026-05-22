@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import type { Article } from '@/lib/mock-data';
 import { Search, Clock, Calendar } from 'lucide-react';
+import { formatArticleDate } from '@/lib/format-date';
 
 interface Props {
     articles: Article[];
@@ -24,17 +25,6 @@ export function SearchPageContent({ articles }: Props) {
                     a.summary.toLowerCase().includes(query.toLowerCase())
             )
             : [];
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString(
-            locale === 'zh' ? 'zh-CN' : locale === 'de' ? 'de-DE' : 'en-US',
-            {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-            }
-        );
-    };
 
     return (
         <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-6 md:py-10 bg-vintage-bg">
@@ -88,7 +78,7 @@ export function SearchPageContent({ articles }: Props) {
                                     <span className="font-bold text-vintage-text">{article.author}</span>
                                     <span className="flex items-center gap-1">
                                         <Calendar className="w-3.5 h-3.5" />
-                                        {formatDate(article.publishDate)}
+                                        {formatArticleDate(article.publishDate, locale)}
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <Clock className="w-3.5 h-3.5" />

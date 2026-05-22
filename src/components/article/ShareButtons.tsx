@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Twitter, Linkedin, MessageCircle, Share2 } from 'lucide-react';
 
@@ -9,8 +10,32 @@ interface Props {
 
 export function ShareButtons({ title }: Props) {
     const t = useTranslations('article');
+    const [shareUrl, setShareUrl] = useState<string | null>(null);
 
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    useEffect(() => {
+        setShareUrl(window.location.href);
+    }, []);
+
+    if (shareUrl === null) {
+        return (
+            <div className="flex items-center gap-4" aria-hidden>
+                <span className="flex items-center gap-2 text-sm font-medium text-neutral-500">
+                    <Share2 className="w-4 h-4" />
+                    {t('shareOn')}
+                </span>
+                <div className="flex items-center gap-2">
+                    {[Twitter, Linkedin, MessageCircle].map((Icon, index) => (
+                        <span
+                            key={index}
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-neutral-100 text-neutral-600"
+                        >
+                            <Icon className="w-4 h-4" />
+                        </span>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     const shareLinks = [
         {

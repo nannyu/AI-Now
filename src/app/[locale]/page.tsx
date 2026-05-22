@@ -1,6 +1,7 @@
 import { getFeaturedDbArticle, getLatestDbArticles } from '@/lib/db-articles';
+import { formatArticleDate } from '@/lib/format-date';
 import { Link } from '@/i18n/routing';
-import { Clock, ArrowRight, ArrowUpRight, Rss } from 'lucide-react';
+import { Clock, ArrowRight } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
 interface Props {
@@ -24,34 +25,6 @@ export default async function HomePage({ params }: Props) {
         t('ticker.b2'),
         t('ticker.b3'),
         t('ticker.b4')
-    ];
-
-    // List of spotlit startups for the sidebar spotlight
-    const spotlightStartups = [
-        {
-            name: "DeepSeek AI",
-            sector: locale === 'zh' ? "高性能推理模型与开源架构" : "High-Efficiency Reasoning & Open Source",
-            valuation: "$3.0B USD",
-            tech: "DeepSeek-V3 MoE"
-        },
-        {
-            name: "MiniMax AI",
-            sector: locale === 'zh' ? "生成式大模型与虚拟社交" : "Generative LLM & Contextual Agents",
-            valuation: "$2.5B USD",
-            tech: "Abab 6.5 MoE"
-        },
-        {
-            name: "Zhipu AI",
-            sector: locale === 'zh' ? "全栈企业大模型及商用生态" : "Full-Stack B2B LLM & GLM Ecosystems",
-            valuation: "$2.7B USD",
-            tech: "GLM-4-Plus"
-        },
-        {
-            name: "Moonshot AI",
-            sector: locale === 'zh' ? "超长上下文模型与C端助手" : "Long-Context LLMs & Consumer Apps",
-            valuation: "$2.5B USD",
-            tech: "Kimi Chat 2M"
-        }
     ];
 
     return (
@@ -96,7 +69,7 @@ export default async function HomePage({ params }: Props) {
                             </span>
                             <span className="flex items-center gap-1 font-semibold">
                                 <Clock className="w-3.5 h-3.5" />
-                                {featured.publishDate}
+                                {formatArticleDate(featured.publishDate, locale)}
                             </span>
                         </div>
 
@@ -199,44 +172,7 @@ export default async function HomePage({ params }: Props) {
 
                 </main>
 
-                {/* RIGHT SIDEBAR (lg:col-span-4): Startup Intelligence & Subscription */}
                 <aside className="lg:col-span-4 lg:border-l lg:border-vintage-border lg:pl-6 space-y-6">
-                    
-                    {/* Startup Spotlight Card */}
-                    <div className="bg-vintage-panel/50 border border-vintage-border p-4 rounded-sm">
-                        <div className="flex items-center gap-1.5 pb-2.5 mb-3 border-b border-vintage-border text-vintage-accent">
-                            <h3 className="font-cinzel text-xs font-black tracking-wider uppercase">
-                                {locale === 'zh' ? "华夏AI独角兽名册" : "STARTUP INTELLIGENCE"}
-                            </h3>
-                        </div>
-
-                        <p className="text-[10px] leading-relaxed text-vintage-text/70 mb-4 font-sans-intel">
-                            {locale === 'zh' 
-                                ? "聚合追踪当前中国生成式 AI 领域的顶级机构及战略估值指数。"
-                                : "Aggregated trackers focusing on major generative AI startups, valuations, and tech stacks in China."}
-                        </p>
-
-                        {/* List of startups */}
-                        <div className="space-y-4 font-sans-intel">
-                            {spotlightStartups.map((startup, idx) => (
-                                <div key={idx} className="pb-3 border-b border-vintage-border/50 last:border-b-0 last:pb-0">
-                                    <div className="flex justify-between items-start">
-                                        <span className="text-xs font-bold text-vintage-accent hover:underline flex items-center gap-1 cursor-pointer">
-                                            {startup.name}
-                                            <ArrowUpRight className="w-3 h-3 text-vintage-accent/60" />
-                                        </span>
-                                        <span className="text-[10px] font-mono-raw font-bold bg-vintage-accent/10 text-vintage-accent px-1.5 py-0.5 rounded-sm">
-                                            {startup.valuation}
-                                        </span>
-                                    </div>
-                                    <div className="mt-1 flex items-center justify-between text-[10px] text-vintage-text/70">
-                                        <span className="truncate max-w-[200px]">{startup.sector}</span>
-                                        <span className="font-mono-raw text-vintage-text/50">{startup.tech}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
                     {/* Editorial Newsletter Subscription Box */}
                     <div className="border border-dashed border-vintage-accent/40 bg-vintage-accent/[0.02] p-4 text-center rounded-sm">

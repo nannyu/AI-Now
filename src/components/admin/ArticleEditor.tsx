@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
-import { proxyWechatImages, publicImageProxyUrl } from '@/lib/image-proxy';
+import { proxyWechatImages, resolveArticleCoverUrl } from '@/lib/image-proxy';
 import { categories, getLocalizedCategoryName } from '@/lib/mock-data';
 
 interface Article {
@@ -88,7 +88,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                 <div className="bg-white rounded-xl border border-neutral-200 p-4 sm:p-6 lg:p-8 min-w-0">
                     {form.cover_image && (
                         <div className="aspect-[16/9] rounded-xl overflow-hidden mb-6 max-w-3xl">
-                            <img src={publicImageProxyUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
+                            <img src={resolveArticleCoverUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
                         </div>
                     )}
                     <div className="w-full max-w-[680px] min-w-0">
@@ -169,7 +169,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                         />
                         {form.cover_image && (
                             <div className="mt-2 w-48 aspect-[16/9] rounded-lg overflow-hidden bg-neutral-100">
-                                <img src={publicImageProxyUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
+                                <img src={resolveArticleCoverUrl(form.cover_image)} alt="" className="w-full h-full object-cover" />
                             </div>
                         )}
                     </div>
@@ -183,7 +183,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                                 onChange={(e) => handleChange('is_featured', e.target.checked ? 1 : 0)}
                                 className="w-4 h-4 text-brand-600 border-neutral-300 rounded focus:ring-brand-500"
                             />
-                            <span className="text-sm font-medium text-neutral-700">设为首页重点文章</span>
+                            <span className="text-sm font-medium text-neutral-700">置顶（首页头条优先展示）</span>
                         </label>
                     </div>
 

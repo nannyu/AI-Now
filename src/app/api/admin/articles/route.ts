@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         params.push(status);
     }
 
-    query += ' ORDER BY COALESCE(publish_date, crawled_at, updated_at) DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC LIMIT ? OFFSET ?';
 
     const articles = (db.prepare(query).all(...params, limit, offset) as Array<{ id: number; slug?: string | null }>).map((article) => ({
         ...article,

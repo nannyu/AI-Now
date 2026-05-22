@@ -22,6 +22,15 @@ export type IngestResult = {
     skipped: number;
 };
 
+function normalizePublishDate(value?: string | null): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const date = new Date(trimmed);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString();
+}
+
 export function normalizeArticleDraft(input: ArticleDraftInput) {
     const rawBody = normalizeEscapedWhitespace(input.body || input.summary || '');
     const cleanBody = proxyWechatImages(unwrapAdminImageProxyUrls(convertWechatContent(rawBody)));
@@ -42,7 +51,7 @@ export function normalizeArticleDraft(input: ArticleDraftInput) {
             body: rawBody,
             fallback: input.category,
         }),
-        publishDate: input.publishDate ?? null,
+        publishDate: normalizePublishDate(input.publishDate),
     };
 }
 
@@ -75,8 +84,27 @@ export function insertArticleDraft(db: Database.Database, input: ArticleDraftInp
         draft.author,
         draft.coverImage,
         draft.category,
-        null
+        draft.publishDate
     );
+
+    if (result.changes === 0) {
+        if (draft.publishDate) {
+            db.prepare(`
+                UPDATE articles
+                SET publish_date = COALESCE(NULLIF(publish_date, ''), ?)
+                WHERE source_url = ?
+            `).run(draft.publishDate, draft.sourceUrl);
+        }
+        if (draft.author && draft.author !== 'AI Now') {
+            db.prepare(`
+                UPDATE articles
+                SET author = ?
+                WHERE source_url = ?
+                  AND source_url NOT LIKE 'seed:%'
+                  AND source_url NOT LIKE 'manual:%'
+            `).run(draft.author, draft.sourceUrl);
+        }
+    }
 
     return {
         inserted: result.changes > 0,

@@ -1,27 +1,15 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { getLatestArticles } from '@/lib/mock-data';
+import { formatArticleDate } from '@/lib/format-date';
 import { Clock } from 'lucide-react';
 
 export function LatestStoriesSidebar() {
     const t = useTranslations('home');
+    const locale = useLocale();
     const articles = getLatestArticles(8).slice(2);
-
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffHours = Math.floor(
-            (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-        );
-
-        if (diffHours < 24) {
-            return `${diffHours}h ago`;
-        }
-        const diffDays = Math.floor(diffHours / 24);
-        return `${diffDays}d ago`;
-    };
 
     return (
         <aside className="hidden lg:block">
@@ -47,7 +35,7 @@ export function LatestStoriesSidebar() {
                                     {article.title}
                                 </h4>
                                 <div className="flex items-center gap-2 text-xs text-neutral-500">
-                                    <span>{formatDate(article.publishDate)}</span>
+                                    <span>{formatArticleDate(article.publishDate, locale)}</span>
                                     <span>·</span>
                                     <span className="flex items-center gap-1">
                                         <Clock className="w-3 h-3" />
