@@ -26,7 +26,7 @@ export function Footer({ year }: FooterProps) {
                             className="w-5 h-5 object-contain"
                         />
                         <span className="text-sm font-noto-serif-sc font-black tracking-widest bg-gradient-to-r from-[#252ef7] to-[#fc82e7] bg-clip-text text-transparent">
-                            AI NOW ｜ AI闹
+                            AI ROAR ｜ AI闹
                         </span>
                     </div>
                     <p className="text-xs text-vintage-text/75 leading-relaxed font-sans-intel text-justify">
@@ -83,7 +83,7 @@ export function Footer({ year }: FooterProps) {
                     <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-vintage-text/70">
                         <li>
                             <a
-                                href="https://twitter.com/ainow"
+                                href="https://twitter.com/airoar"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="hover:text-vintage-accent font-semibold transition-colors"
@@ -93,7 +93,7 @@ export function Footer({ year }: FooterProps) {
                         </li>
                         <li>
                             <a
-                                href="https://linkedin.com/company/ainow"
+                                href="https://linkedin.com/company/airoar"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="hover:text-vintage-accent font-semibold transition-colors"

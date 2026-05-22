@@ -196,7 +196,7 @@ export function ArticleContent({ article }: Props) {
                         {/* Newspaper Statement Block */}
                         <div className="bg-vintage-bg border border-vintage-border p-3 text-xs">
                             <h4 className="font-mono-raw font-bold text-[10px] uppercase text-vintage-accent tracking-wider pb-1 border-b border-vintage-border">
-                                {locale === 'zh' ? "AI NOW 声明" : "AI NOW STATEMENT"}
+                                {locale === 'zh' ? "AI ROAR 声明" : "AI ROAR STATEMENT"}
                             </h4>
                             <p className="text-[10px] leading-relaxed text-vintage-text/75 font-sans-intel text-justify italic mt-2">
                                 {locale === 'zh'

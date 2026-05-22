@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch RSS feed from wechat-rss-lite
-        const headers: HeadersInit = { 'User-Agent': 'AI-Now-Crawler/1.0' };
+        const headers: HeadersInit = { 'User-Agent': 'AI-Roar-Crawler/1.0' };
         if (isWechatRssFeedUrl(feedUrl.url)) {
             Object.assign(headers, wechatRssAuthHeaders());
         }

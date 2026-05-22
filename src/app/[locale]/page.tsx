@@ -215,7 +215,7 @@ export default async function HomePage({ params }: Props) {
                     {/* Brief About Portal Pitch */}
                     <div className="bg-vintage-bg border border-vintage-border p-3 text-xs space-y-2">
                         <h4 className="font-mono-raw font-bold text-[10px] uppercase text-vintage-accent tracking-wider pb-1 border-b border-vintage-border">
-                            {locale === 'zh' ? "AI NOW 宣言" : "AI NOW STATEMENT"}
+                            {locale === 'zh' ? "AI ROAR 宣言" : "AI ROAR STATEMENT"}
                         </h4>
                         <p className="text-[10px] leading-relaxed text-vintage-text/75 font-sans-intel text-justify italic">
                             {locale === 'zh'

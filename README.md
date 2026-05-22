@@ -1,4 +1,4 @@
-# AI Now
+# AI Roar
 
 A multilingual news platform showcasing Chinese AI entrepreneurs and their startup stories to a global audience. Available in Chinese, English, and German.
 

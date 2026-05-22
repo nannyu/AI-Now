@@ -43,7 +43,7 @@ export function normalizeArticleDraft(input: ArticleDraftInput) {
         title: normalizeInlineWhitespace(input.title),
         summary,
         body: cleanBody,
-        author: normalizeInlineWhitespace(input.author) || 'AI Now',
+        author: normalizeInlineWhitespace(input.author) || 'AI Roar',
         coverImage,
         category: inferArticleCategorySlug({
             title: input.title,
@@ -95,7 +95,7 @@ export function insertArticleDraft(db: Database.Database, input: ArticleDraftInp
                 WHERE source_url = ?
             `).run(draft.publishDate, draft.sourceUrl);
         }
-        if (draft.author && draft.author !== 'AI Now') {
+        if (draft.author && draft.author !== 'AI Roar') {
             db.prepare(`
                 UPDATE articles
                 SET author = ?

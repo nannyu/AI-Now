@@ -23,8 +23,8 @@ export function AboutPageContent() {
                 </h1>
                 <p className="font-serif-vintage text-base md:text-lg text-vintage-text/90 leading-relaxed text-justify">
                     {locale === 'zh'
-                        ? 'AI NOW ｜ AI闹是一家多语言数字智库平台，专注于记录中国人工智能初创企业的崛起故事。我们深信，在技术全球化深度演进的当下，理解和连接中国活跃的AI生态是每一位技术决策者与行业观察者的必修课。'
-                        : 'AI NOW is a multilingual digital publication dedicated to telling the stories of Chinese AI entrepreneurs. We believe these narratives deserve a global audience — and that understanding China\'s AI ecosystem is essential for anyone working in technology today.'}
+                        ? 'AI ROAR ｜ AI闹是一家多语言数字智库平台，专注于记录中国人工智能初创企业的崛起故事。我们深信，在技术全球化深度演进的当下，理解和连接中国活跃的AI生态是每一位技术决策者与行业观察者的必修课。'
+                        : 'AI Roar is a multilingual digital publication dedicated to telling the stories of Chinese AI entrepreneurs. We believe these narratives deserve a global audience — and that understanding China\'s AI ecosystem is essential for anyone working in technology today.'}
                 </p>
             </div>
 
@@ -90,8 +90,8 @@ export function AboutPageContent() {
                     </p>
                     <p>
                         {locale === 'zh'
-                            ? 'AI NOW ｜ AI闹的诞生正是为了改变这一现状。我们筛选和编译最具代表性的中文行业源头文献，融入地缘算力架构分析、估值追踪与多语言翻译模型，为全球技术观察者提供一扇高质量的洞察窗口。'
-                            : 'AI NOW exists to bridge this gap. We curate high-fidelity reports, translate them with extreme semantic lock, and integrate them with real-time company spotlights. We aim to be the definitive window into eastern intelligence pipelines.'}
+                            ? 'AI ROAR ｜ AI闹的诞生正是为了改变这一现状。我们筛选和编译最具代表性的中文行业源头文献，融入地缘算力架构分析、估值追踪与多语言翻译模型，为全球技术观察者提供一扇高质量的洞察窗口。'
+                            : 'AI Roar exists to bridge this gap. We curate high-fidelity reports, translate them with extreme semantic lock, and integrate them with real-time company spotlights. We aim to be the definitive window into eastern intelligence pipelines.'}
                     </p>
                 </div>
             </div>

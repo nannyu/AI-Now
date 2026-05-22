@@ -1,6 +1,6 @@
 {
     "site": {
-        "name": "AI Now",
+        "name": "AI Roar",
         "tagline": "Geschichten chinesischer KI-Unternehmer, fuer die Welt",
         "description": "Entdecken Sie die faszinierendsten Geschichten chinesischer KI-Startups - Innovation, Ehrgeiz und die Menschen, die die Zukunft gestalten."
     },
@@ -65,11 +65,11 @@
         "page": "Seite {current} von {total}"
     },
     "footer": {
-        "about": "Ueber AI Now",
-        "aboutText": "AI Now ist eine Plattform, die sich der Praesentation chinesischer KI-Unternehmer und ihrer Startup-Reisen fuer ein globales Publikum widmet.",
+        "about": "Ueber AI Roar",
+        "aboutText": "AI Roar ist eine Plattform, die sich der Praesentation chinesischer KI-Unternehmer und ihrer Startup-Reisen fuer ein globales Publikum widmet.",
         "links": "Schnelllinks",
         "social": "Folgen Sie uns",
-        "copyright": "© {year} AI Now. Alle Rechte vorbehalten.",
+        "copyright": "© {year} AI Roar. Alle Rechte vorbehalten.",
         "privacy": "Datenschutz",
         "terms": "Nutzungsbedingungen"
     }

@@ -433,7 +433,7 @@ export function Header() {
                         className="w-10 h-10 object-contain transition-transform duration-500 group-hover:rotate-6 group-hover:scale-105"
                     />
                     <h1 className="text-3xl md:text-4xl font-noto-serif-sc font-black tracking-tight bg-gradient-to-r from-[#252ef7] via-[#7d5bf2] to-[#fc82e7] bg-clip-text text-transparent transition-all">
-                        AI NOW ｜ AI闹
+                        AI ROAR ｜ AI闹
                     </h1>
                 </Link>
                 <div className="mt-1 text-xs font-bold text-vintage-accent/80 tracking-[0.25em] font-sans-intel uppercase text-center">
@@ -465,7 +465,7 @@ export function Header() {
                             className="w-5.5 h-5.5 object-contain"
                         />
                         <span className="bg-gradient-to-r from-[#252ef7] to-[#fc82e7] bg-clip-text text-transparent">
-                            AI NOW ｜ AI闹
+                            AI ROAR ｜ AI闹
                         </span>
                     </h1>
                 </Link>

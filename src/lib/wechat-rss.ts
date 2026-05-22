@@ -127,7 +127,7 @@ export function wechatRssAdminAuthRequiredHtml(loginUrl: string): string {
 <html lang="zh-CN">
 <head><meta charset="utf-8"><title>需要登录</title></head>
 <body style="font-family:system-ui,sans-serif;padding:2rem;max-width:32rem">
-  <h1 style="font-size:1.125rem">请先登录 AI Now 管理后台</h1>
+  <h1 style="font-size:1.125rem">请先登录 AI Roar 管理后台</h1>
   <p style="color:#525252">微信公众号配置页需要有效的管理员会话。请在新标签页登录后再刷新本页。</p>
   <p><a href="${loginUrl}">前往登录</a></p>
 </body>

@@ -65,7 +65,7 @@ export function dbRowToArticle(row: DbArticleRow): DbArticle {
         subtitle: summary,
         summary,
         body,
-        author: normalizeInlineWhitespace(row.author) || 'AI Now',
+        author: normalizeInlineWhitespace(row.author) || 'AI Roar',
         categoryLabel: category.name,
         publishDate,
         readingMinutes: estimateReadingTime(bodyText || row.body),
