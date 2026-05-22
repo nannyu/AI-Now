@@ -179,11 +179,11 @@ Production deployment checklist:
 3. Set `ADMIN_API_TOKEN` for the wechat-rss-lite service and set `WECHAT_RSS_ADMIN_TOKEN` in the frontend to the same value.
 4. Set `WECHAT_RSS_BASE_URL` to the deployed service path, for example `https://<project-domain>/_/wechat-rss-lite`.
 5. Set `SITE_URL` for wechat-rss-lite to the same deployed service path so RSS and admin URLs are generated correctly.
-6. Set `DATABASE_URL` to a Supabase/Postgres connection string for durable Next.js app data.
+6. Set `DATABASE_URL` to a Supabase/Postgres connection string for durable Next.js app data. The wechat-rss-lite service also uses this connection by default, storing its data in a separate `wechat_rss_lite` schema; set `WECHAT_RSS_DATABASE_URL` only if the crawler should use a different database.
 7. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
 8. Run `npm run build` before publishing.
 
-If `DATABASE_URL` is omitted, Vercel can only use a temporary SQLite file under `/tmp`; data may disappear after instance recycling, cold starts, or redeployments. The wechat-rss-lite service also needs its own durable storage configuration before relying on it for production subscriptions/history.
+If `DATABASE_URL` is omitted, Vercel can only use a temporary SQLite file under `/tmp`; data may disappear after instance recycling, cold starts, or redeployments.
 
 ## License
 
