@@ -20,12 +20,13 @@ interface Article {
     category: string;
     status: string;
     is_featured: number;
-    publish_date: string;
+    publish_date: string | null;
+    deleted_at: string | null;
     crawled_at: string;
     updated_at: string;
 }
 
-type StatusFilter = 'all' | 'draft' | 'published' | 'rejected';
+type StatusFilter = 'all' | 'draft' | 'published' | 'rejected' | 'trash';
 
 interface WechatSubscriptionOption {
     id: string;
@@ -47,6 +48,7 @@ const statusLabels: Record<StatusFilter | string, string> = {
     draft: '草稿',
     published: '已发布',
     rejected: '已驳回',
+    trash: '回收站',
 };
 
 export function ArticlesPanel() {
@@ -130,16 +132,17 @@ export function ArticlesPanel() {
     };
 
     const deleteArticle = async (id: number) => {
-        if (!confirm('确定要永久删除这篇文章吗？')) return;
+        if (!confirm('确定要将这篇文章移入回收站吗？文章将在回收站保留 30 天。')) return;
         await adminFetch(`/api/admin/articles?id=${id}`, { method: 'DELETE' });
+        setMessage('文章已移入回收站，将在 30 天后自动清除。');
         loadArticles(pagination.page);
     };
 
     const batchDeleteArticles = async (ids: number[]) => {
         if (ids.length === 0) return;
-        if (!confirm(`确定要永久删除 ${ids.length} 篇文章吗？`)) return;
+        if (!confirm(`确定要将 ${ids.length} 篇文章移入回收站吗？文章将在回收站保留 30 天。`)) return;
         await adminFetch(`/api/admin/articles?ids=${ids.join(',')}`, { method: 'DELETE' });
-        setMessage(`已删除 ${ids.length} 篇文章。`);
+        setMessage(`已将 ${ids.length} 篇文章移入回收站。`);
         loadArticles(pagination.page);
     };
 
@@ -156,6 +159,7 @@ export function ArticlesPanel() {
                 cover_image: article.cover_image,
                 category: article.category,
                 is_featured: article.is_featured,
+                publish_date: article.publish_date,
             }),
         });
         setEditingArticle(null);
@@ -278,6 +282,7 @@ export function ArticlesPanel() {
         draft: 'bg-yellow-100 text-yellow-700',
         published: 'bg-green-100 text-green-700',
         rejected: 'bg-red-100 text-red-700',
+        trash: 'bg-neutral-200 text-neutral-600',
     };
     const selectedIds = Array.from(selectedArticleIds);
     const selectedDraftIds = articles
@@ -286,6 +291,9 @@ export function ArticlesPanel() {
     const selectedPublishedIds = articles
         .filter((article) => selectedArticleIds.has(article.id) && article.status === 'published')
         .map((article) => article.id);
+    const selectedTrashIds = articles
+        .filter((article) => selectedArticleIds.has(article.id) && article.status === 'trash')
+        .map((article) => article.id);
 
     return (
         <div>
@@ -293,7 +301,7 @@ export function ArticlesPanel() {
                 <div className="min-w-0">
                     <h1 className="text-2xl font-bold text-neutral-900">文章管理</h1>
                     <p className="text-sm text-neutral-500 mt-1">
-                        管理抓取与手工创建的文章，支持编辑、发布、撤回和删除。
+                        管理抓取与手工创建的文章，支持编辑、发布、撤回、回收站和恢复。
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -442,7 +450,7 @@ export function ArticlesPanel() {
             {/* Status filter tabs */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <div className="flex flex-wrap items-center gap-1 p-1 bg-neutral-100 rounded-lg w-full sm:w-fit">
-                    {(['all', 'draft', 'published', 'rejected'] as StatusFilter[]).map((status) => (
+                    {(['all', 'draft', 'published', 'rejected', 'trash'] as StatusFilter[]).map((status) => (
                         <button
                             key={status}
                             onClick={() => setStatusFilter(status)}
@@ -480,14 +488,26 @@ export function ArticlesPanel() {
                                 批量撤回草稿
                             </button>
                         )}
-                        <button
-                            type="button"
-                            onClick={() => batchDeleteArticles(selectedIds)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-700 bg-red-50 rounded-lg hover:bg-red-100"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            批量删除
-                        </button>
+                        {selectedTrashIds.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => batchUpdateStatus(selectedTrashIds, 'draft')}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                批量恢复到草稿箱
+                            </button>
+                        )}
+                        {selectedTrashIds.length !== selectedIds.length && (
+                            <button
+                                type="button"
+                                onClick={() => batchDeleteArticles(selectedIds.filter((id) => !selectedTrashIds.includes(id)))}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-red-700 bg-red-50 rounded-lg hover:bg-red-100"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                批量移入回收站
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -497,8 +517,10 @@ export function ArticlesPanel() {
             ) : articles.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-xl border border-neutral-200">
                     <FileText className="w-8 h-8 text-neutral-300 mx-auto mb-3" />
-                    <p className="text-neutral-500">暂无文章。</p>
-                    <p className="text-sm text-neutral-400 mt-1">可以从公众号订阅或 RSS 来源导入文章。</p>
+                    <p className="text-neutral-500">{statusFilter === 'trash' ? '回收站为空。' : '暂无文章。'}</p>
+                    <p className="text-sm text-neutral-400 mt-1">
+                        {statusFilter === 'trash' ? '删除的文章会在这里保留 30 天。' : '可以从公众号订阅或 RSS 来源导入文章。'}
+                    </p>
                 </div>
             ) : (
                 <>
@@ -582,27 +604,39 @@ export function ArticlesPanel() {
                                             <Pin className={clsx('w-4 h-4', article.is_featured === 1 && 'fill-current')} />
                                         </button>
                                     )}
-                                    <button
-                                        onClick={() => window.open(`/zh/article/${article.slug || `db-${article.id}`}`, '_blank', 'noopener,noreferrer')}
-                                        className="p-2 text-neutral-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                                        title="打开文章"
-                                    >
-                                        <Eye className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setEditingArticle(article)}
-                                        className="p-2 text-neutral-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                                        title="编辑"
-                                    >
-                                        <Pencil className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteArticle(article.id)}
-                                        className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="删除"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {article.status === 'trash' ? (
+                                        <button
+                                            onClick={() => updateArticleStatus(article.id, 'draft')}
+                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            title="恢复到草稿箱"
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button
+                                                onClick={() => window.open(`/zh/article/${article.slug || `db-${article.id}`}`, '_blank', 'noopener,noreferrer')}
+                                                className="p-2 text-neutral-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                                                title="打开文章"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingArticle(article)}
+                                                className="p-2 text-neutral-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                                                title="编辑"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteArticle(article.id)}
+                                                className="p-2 text-neutral-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="移入回收站"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -645,7 +679,9 @@ function ArticleSummary({
     article: Article;
     statusColors: Record<string, string>;
 }) {
-    const displayDate = article.publish_date || article.crawled_at;
+    const displayDate = article.status === 'trash'
+        ? article.deleted_at || article.updated_at
+        : article.publish_date || article.crawled_at;
     const category = categories.find((item) => item.slug === article.category || item.name === article.category);
     const categoryName = category ? getLocalizedCategoryName(category, 'zh') : article.category;
 
@@ -668,7 +704,12 @@ function ArticleSummary({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-neutral-400">
                 <span className="truncate max-w-full">{article.author}</span>
                 {categoryName && <span>· {categoryName}</span>}
-                {displayDate && <span>· {formatArticleDate(displayDate, 'zh')}</span>}
+                {displayDate && (
+                    <span>
+                        · {article.status === 'trash' ? '删除于 ' : ''}
+                        {formatArticleDate(displayDate, 'zh')}
+                    </span>
+                )}
             </div>
         </>
     );

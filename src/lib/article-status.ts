@@ -1,4 +1,4 @@
-export const ARTICLE_STATUSES = ['draft', 'published', 'rejected'] as const;
+export const ARTICLE_STATUSES = ['draft', 'published', 'rejected', 'trash'] as const;
 
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
 

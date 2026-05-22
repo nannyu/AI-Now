@@ -7,6 +7,23 @@ import { insertArticleDraft } from '@/lib/article-ingest';
 import { normalizeCategorySlug } from '@/lib/article-categories';
 import { isArticleStatus } from '@/lib/article-status';
 
+function normalizeEditablePublishDate(value: unknown): string | null {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string') {
+        throw new Error('Invalid publish_date value');
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+        throw new Error('Invalid publish_date value');
+    }
+    return parsed.toISOString();
+}
+
 export async function GET(request: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -18,6 +35,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     const db = getDb();
+    db.exec("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= datetime('now', '-30 days')");
 
     let query = 'SELECT * FROM articles';
     let countQuery = 'SELECT COUNT(*) as total FROM articles';
@@ -27,9 +45,12 @@ export async function GET(request: NextRequest) {
         query += ' WHERE status = ?';
         countQuery += ' WHERE status = ?';
         params.push(status);
+    } else {
+        query += " WHERE status != 'trash'";
+        countQuery += " WHERE status != 'trash'";
     }
 
-    query += ' ORDER BY is_featured DESC, COALESCE(publish_date, crawled_at, updated_at) DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY COALESCE(deleted_at, publish_date, crawled_at, updated_at) DESC LIMIT ? OFFSET ?';
 
     const articles = (db.prepare(query).all(...params, limit, offset) as Array<{ id: number; slug?: string | null }>).map((article) => ({
         ...article,
@@ -75,13 +96,26 @@ export async function PATCH(request: NextRequest) {
         if (nextStatus === 'published') {
             db.prepare(`
                 UPDATE articles
-                SET status = ?, publish_date = COALESCE(publish_date, ?), updated_at = datetime('now')
+                SET
+                    status = ?,
+                    publish_date = CASE
+                        WHEN source_url LIKE 'manual:%' THEN COALESCE(publish_date, ?)
+                        ELSE publish_date
+                    END,
+                    deleted_at = NULL,
+                    updated_at = datetime('now')
                 WHERE id IN (${placeholders})
             `).run(nextStatus, new Date().toISOString(), ...cleanIds);
+        } else if (nextStatus === 'trash') {
+            db.prepare(`
+                UPDATE articles
+                SET status = ?, is_featured = 0, deleted_at = datetime('now'), updated_at = datetime('now')
+                WHERE id IN (${placeholders})
+            `).run(nextStatus, ...cleanIds);
         } else {
             db.prepare(`
                 UPDATE articles
-                SET status = ?, updated_at = datetime('now')
+                SET status = ?, deleted_at = NULL, updated_at = datetime('now')
                 WHERE id IN (${placeholders})
             `).run(nextStatus, ...cleanIds);
         }
@@ -105,14 +139,34 @@ export async function PATCH(request: NextRequest) {
                 values.push(sanitizeArticleHtml(value));
             } else if (key === 'category' && typeof value === 'string') {
                 values.push(normalizeCategorySlug(value));
+            } else if (key === 'publish_date') {
+                try {
+                    values.push(normalizeEditablePublishDate(value));
+                } catch {
+                    return NextResponse.json({ error: 'Invalid publish_date value' }, { status: 400 });
+                }
             } else {
                 values.push(value);
             }
         }
     }
 
+    if (typeof updates.status === 'string') {
+        if (updates.status === 'trash') {
+            fields.push('deleted_at = datetime(\'now\')');
+            fields.push('is_featured = 0');
+        } else {
+            fields.push('deleted_at = NULL');
+        }
+    }
+
     if (shouldEnsurePublishDate) {
-        fields.push('publish_date = COALESCE(publish_date, ?)');
+        fields.push(`
+            publish_date = CASE
+                WHEN source_url LIKE 'manual:%' THEN COALESCE(publish_date, ?)
+                ELSE publish_date
+            END
+        `);
         values.push(new Date().toISOString());
     }
 
@@ -174,13 +228,21 @@ export async function DELETE(request: NextRequest) {
         const cleanIds = ids.split(',').map(Number).filter(Number.isFinite);
         if (cleanIds.length === 0) return NextResponse.json({ error: 'Valid IDs are required' }, { status: 400 });
         const placeholders = cleanIds.map(() => '?').join(',');
-        db.prepare(`DELETE FROM articles WHERE id IN (${placeholders})`).run(...cleanIds);
+        db.prepare(`
+            UPDATE articles
+            SET status = 'trash', is_featured = 0, deleted_at = datetime('now'), updated_at = datetime('now')
+            WHERE id IN (${placeholders})
+        `).run(...cleanIds);
         return NextResponse.json({ success: true, deleted: cleanIds.length });
     }
 
     if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
-    db.prepare('DELETE FROM articles WHERE id = ?').run(id);
+    db.prepare(`
+        UPDATE articles
+        SET status = 'trash', is_featured = 0, deleted_at = datetime('now'), updated_at = datetime('now')
+        WHERE id = ?
+    `).run(id);
 
     return NextResponse.json({ success: true });
 }

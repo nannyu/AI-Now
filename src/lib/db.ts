@@ -2,9 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'path';
 import { hashPassword } from './password';
-import { articles as seedArticles, categories, getLocalizedArticle } from './mock-data';
-import { normalizeCategorySlug } from './article-categories';
-import { sanitizeArticleHtml } from './html-sanitizer';
+import { categories } from './mock-data';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'ainow.db');
 
@@ -57,6 +55,7 @@ function initializeDb(db: Database.Database) {
       status TEXT DEFAULT 'draft',
       is_featured INTEGER DEFAULT 0,
       publish_date TEXT,
+      deleted_at TEXT,
       crawled_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (source_id) REFERENCES rss_sources(id)
@@ -79,15 +78,10 @@ function initializeDb(db: Database.Database) {
     if (!articleColumns.some((column) => column.name === 'slug')) {
         db.exec('ALTER TABLE articles ADD COLUMN slug TEXT');
     }
+    if (!articleColumns.some((column) => column.name === 'deleted_at')) {
+        db.exec('ALTER TABLE articles ADD COLUMN deleted_at TEXT');
+    }
     db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug) WHERE slug IS NOT NULL AND slug != ''");
-
-    runMigrationOnce(db, 'draft_clear_publish_date_v1', () => {
-        db.exec(`
-      UPDATE articles
-      SET publish_date = NULL
-      WHERE status = 'draft' AND publish_date IS NOT NULL
-    `);
-    });
 
     runMigrationOnce(db, 'rss_sources_dedup_v1', () => {
         db.exec(`
@@ -119,6 +113,14 @@ function initializeDb(db: Database.Database) {
     ON rss_sources(feed_url);
   `);
 
+    runMigrationOnce(db, 'remove_seed_articles_v1', () => {
+        db.exec("DELETE FROM articles WHERE source_url LIKE 'seed:%'");
+    });
+
+    db.exec("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= datetime('now', '-30 days')");
+
+    restoreWechatPublishDatesFromLocalCache(db);
+
     const legacyDefault = db.prepare(
         'SELECT id FROM admin_users WHERE username = ? AND password_hash = ?'
     ).get('admin', 'admin123') as { id: number } | undefined;
@@ -147,7 +149,6 @@ function initializeDb(db: Database.Database) {
         insertCategory.run(cat.name, cat.slug);
     }
 
-    seedDefaultArticles(db);
 }
 
 function runMigrationOnce(db: Database.Database, name: string, migrate: () => void) {
@@ -161,50 +162,34 @@ function runMigrationOnce(db: Database.Database, name: string, migrate: () => vo
     run();
 }
 
-function seedDefaultArticles(db: Database.Database) {
-    const insert = db.prepare(`
-      INSERT OR IGNORE INTO articles (
-        source_url,
-        slug,
-        title,
-        summary,
-        body,
-        author,
-        cover_image,
-        category,
-        status,
-        is_featured,
-        publish_date
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'published', ?, ?)
-    `);
+function restoreWechatPublishDatesFromLocalCache(db: Database.Database) {
+    const cacheDbPath = path.join(process.cwd(), 'services', 'wechat-rss-lite', 'wechat-rss-lite.db');
+    if (!fs.existsSync(cacheDbPath)) return;
 
-    const updateMissingSlug = db.prepare('UPDATE articles SET slug = ? WHERE source_url = ? AND (slug IS NULL OR slug = ?)');
+    const name = 'restore_wechat_publish_dates_from_local_cache_v1';
+    const applied = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(name);
+    if (applied) return;
 
-    const seedMany = db.transaction(() => {
-        for (const article of seedArticles) {
-            const localized = getLocalizedArticle(article, 'zh');
-            const primaryCategory = article.categories[0]?.slug || normalizeCategorySlug(localized.categoryLabel);
-            const sourceUrl = `seed:${article.slug}`;
-            const seedBody = /<\/?[a-z][\s\S]*>/i.test(localized.body)
-                ? sanitizeArticleHtml(localized.body)
-                : localized.body;
-
-            insert.run(
-                sourceUrl,
-                article.slug,
-                localized.title,
-                localized.summary,
-                seedBody,
-                localized.author,
-                localized.coverImage,
-                normalizeCategorySlug(primaryCategory),
-                article.isFeatured ? 1 : 0,
-                article.publishDate
-            );
-            updateMissingSlug.run(article.slug, sourceUrl, '');
-        }
-    });
-
-    seedMany();
+    db.prepare('ATTACH DATABASE ? AS wrss').run(cacheDbPath);
+    try {
+        db.exec(`
+            UPDATE articles
+            SET publish_date = (
+                SELECT wrss.articles.published_at
+                FROM wrss.articles
+                WHERE wrss.articles.url = articles.source_url
+                  AND wrss.articles.published_at IS NOT NULL
+            )
+            WHERE source_url LIKE 'https://mp.weixin.qq.com/%'
+              AND EXISTS (
+                SELECT 1
+                FROM wrss.articles
+                WHERE wrss.articles.url = articles.source_url
+                  AND wrss.articles.published_at IS NOT NULL
+              )
+        `);
+        db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
+    } finally {
+        db.exec('DETACH DATABASE wrss');
+    }
 }

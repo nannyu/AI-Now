@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
 import { proxyWechatImages, resolveArticleCoverUrl } from '@/lib/image-proxy';
+import { formatArticleDate } from '@/lib/format-date';
 import { categories, getLocalizedCategoryName } from '@/lib/mock-data';
 
 interface Article {
@@ -16,7 +17,8 @@ interface Article {
     category: string;
     status: string;
     is_featured: number;
-    publish_date: string;
+    publish_date: string | null;
+    deleted_at: string | null;
     crawled_at: string;
     updated_at: string;
 }
@@ -156,6 +158,24 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
                                 ))}
                             </select>
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">发布日期</label>
+                            <input
+                                type="date"
+                                value={toDateInputValue(form.publish_date)}
+                                onChange={(e) => handleChange('publish_date', e.target.value || null)}
+                                className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            />
+                            <p className="mt-1 text-xs text-neutral-400">
+                                用于前台展示和最新/分类排序；留空则按抓取或更新时间兜底。
+                            </p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-700 mb-1">当前显示日期</label>
+                            <div className="px-4 py-2.5 border border-neutral-200 bg-neutral-50 rounded-lg text-sm text-neutral-600">
+                                {form.publish_date ? formatArticleDate(form.publish_date, 'zh') : '未设置'}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Cover Image */}
@@ -208,4 +228,14 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
 function categoryDisplayName(value: string) {
     const category = categories.find((item) => item.slug === value || item.name === value);
     return category ? getLocalizedCategoryName(category, 'zh') : value;
+}
+
+function toDateInputValue(value?: string | null) {
+    if (!value) return '';
+    const directDate = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+    if (directDate) return directDate[1];
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
 }

@@ -152,4 +152,4 @@ For a simple deployment, the entire app runs as a single Next.js instance with S
 
 ## License
 
-Private project.
+AGPL-3.0-only. See [LICENSE](./LICENSE).
