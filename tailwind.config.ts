@@ -8,13 +8,15 @@ const config: Config = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
                 serif: ['Georgia', 'Cambria', 'Times New Roman', 'serif'],
-                mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-                cinzel: ['Cinzel', 'serif'],
-                'serif-vintage': ['Playfair Display', 'Georgia', 'serif'],
-                'sans-intel': ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
-                'mono-raw': ['Fira Code', 'monospace'],
+                mono: ['var(--font-fira-code)', 'monospace'],
+                cinzel: ['var(--font-cinzel)', 'serif'],
+                'serif-vintage': ['var(--font-playfair-display)', 'Georgia', 'serif'],
+                'sans-intel': ['var(--font-plus-jakarta-sans)', 'system-ui', 'sans-serif'],
+                'mono-raw': ['var(--font-fira-code)', 'monospace'],
+                'zcool-xiaowei': ['var(--font-zcool-xiaowei)', 'serif'],
+                'noto-serif-sc': ['var(--font-noto-serif-sc)', 'serif'],
             },
             colors: {
                 brand: {
@@ -46,7 +48,8 @@ const config: Config = {
                 vintage: {
                     bg: '#FAF8F5',
                     text: '#1C1C1A',
-                    accent: '#1B3E2F',
+                    accent: '#252ef7',
+                    'accent-pink': '#fc82e7',
                     border: '#D4C9BA',
                     'border-dark': '#C5BBAE',
                     panel: '#F2EDE4',

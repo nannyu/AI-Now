@@ -7,6 +7,10 @@ import { insertArticleDraft } from '@/lib/article-ingest';
 import { normalizeCategorySlug } from '@/lib/article-categories';
 import { isArticleStatus } from '@/lib/article-status';
 
+type CountRow = {
+    total: number;
+};
+
 function normalizeEditablePublishDate(value: unknown): string | null {
     if (value === null || value === undefined) return null;
     if (typeof value !== 'string') {
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     let query = 'SELECT * FROM articles';
     let countQuery = 'SELECT COUNT(*) as total FROM articles';
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (status) {
         query += ' WHERE status = ?';
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest) {
         ...article,
         slug: article.slug || dbArticleSlug(article.id),
     }));
-    const { total } = db.prepare(countQuery).get(...params) as any;
+    const { total } = db.prepare<string[], CountRow>(countQuery).get(...params) ?? { total: 0 };
 
     return NextResponse.json({
         articles,
@@ -124,7 +128,7 @@ export async function PATCH(request: NextRequest) {
 
     // Build dynamic update query
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     const shouldEnsurePublishDate = updates.status === 'published' && updates.publish_date === undefined;
 
     const allowedFields = ['title', 'summary', 'body', 'author', 'cover_image', 'category', 'status', 'is_featured', 'publish_date'];

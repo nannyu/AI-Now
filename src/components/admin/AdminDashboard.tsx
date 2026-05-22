@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Rss, LogOut, MessageCircle } from 'lucide-react';
+import { FileText, Rss, LogOut, MessageCircle, Home } from 'lucide-react';
 import { SourcesPanel } from './SourcesPanel';
 import { ArticlesPanel } from './ArticlesPanel';
 import { WeChatRssPanel } from './WeChatRssPanel';
@@ -30,7 +30,14 @@ export function AdminDashboard() {
         <div className="min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
             {/* Sidebar */}
             <aside className="w-full lg:w-60 xl:w-64 bg-white border-b lg:border-b-0 lg:border-r border-neutral-200 flex flex-col shrink-0">
-                <div className="p-4 lg:p-6 border-b border-neutral-100">
+                <div className="p-4 lg:p-6 border-b border-neutral-100 space-y-3">
+                    <a
+                        href="/zh"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 hover:text-brand-600 transition-colors"
+                    >
+                        <Home className="w-3.5 h-3.5" />
+                        回到首页
+                    </a>
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
                             <span className="text-white font-bold text-xs">AI</span>

@@ -259,6 +259,22 @@ export function ArticlesPanel() {
         });
     };
 
+    const selectCurrentPageArticles = () => {
+        setSelectedArticleIds(new Set(articles.map((article) => article.id)));
+    };
+
+    const invertCurrentPageSelection = () => {
+        setSelectedArticleIds((prev) => {
+            const next = new Set<number>();
+            for (const article of articles) {
+                if (!prev.has(article.id)) {
+                    next.add(article.id);
+                }
+            }
+            return next;
+        });
+    };
+
     const toggleSubscription = (id: string) => {
         setSelectedSubscriptions((prev) => {
             const next = new Set(prev);
@@ -465,6 +481,24 @@ export function ArticlesPanel() {
                         </button>
                     ))}
                 </div>
+                {articles.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <button
+                            type="button"
+                            onClick={selectCurrentPageArticles}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-neutral-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50"
+                        >
+                            全选当前页
+                        </button>
+                        <button
+                            type="button"
+                            onClick={invertCurrentPageSelection}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-neutral-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50"
+                        >
+                            反选当前页
+                        </button>
+                    </div>
+                )}
                 {selectedIds.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                         <span className="text-neutral-500">已选择 {selectedIds.length} 篇</span>

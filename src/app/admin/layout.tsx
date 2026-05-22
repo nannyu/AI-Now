@@ -1,16 +1,9 @@
 import '../globals.css';
+import { inter } from '@/app/fonts';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="zh-CN">
-            <head>
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link
-                    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-                    rel="stylesheet"
-                />
-            </head>
+        <html lang="zh-CN" className={inter.variable}>
             <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900 overflow-x-hidden">
                 {children}
             </body>

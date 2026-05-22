@@ -8,9 +8,10 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 
 ### Frontend (Reader-facing)
 - **Homepage** — News ticker, featured article hero, Editor's Picks, category sections, newsletter signup
-- **Article Detail** — Long-form reading with serif typography, reading progress bar, social sharing, related articles
+- **Article Detail** — Long-form reading with serif typography, reading progress bar, social sharing, related articles, and reader comments
 - **Category Pages** — Filtered article listings with pagination
 - **Search** — Real-time full-text search across articles
+- **Reader Accounts** — Username/email registration, login, profile editing, and authenticated commenting
 - **Multi-language** — Chinese (zh), English (en), German (de) with URL-based locale routing
 - **Responsive** — Mobile-first design with 3 breakpoints (320px, 768px, 1024px)
 
@@ -23,21 +24,22 @@ A multilingual news platform showcasing Chinese AI entrepreneurs and their start
 
 ### Backend
 - **wechat-rss-lite Integration** — Fetches and parses RSS feeds from WeChat public accounts
-- **SQLite Database** — Lightweight storage for articles, sources, categories, and admin users
+- **SQLite Database** — Lightweight storage for articles, sources, categories, admin users, reader users, and comments
 - **Content Pipeline** — Strips WeChat styling, preserves semantic structure, extracts cover images and summaries
+- **Auth & Session APIs** — Separate admin and reader sessions with HTTP-only JWT cookies
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Styling | Tailwind CSS 3 |
 | i18n | next-intl |
 | Database | SQLite (better-sqlite3) |
 | Auth | JWT (jose) |
 | Icons | Lucide React |
-| Fonts | Inter (headings/UI) + Georgia (body) |
+| Fonts | next/font Google fonts (Inter, Cinzel, Playfair Display, Plus Jakarta Sans, Fira Code, ZCOOL XiaoWei, Noto Serif SC) |
 
 ## Getting Started
 
@@ -100,6 +102,16 @@ Navigate to [http://localhost:3000/admin](http://localhost:3000/admin) to access
 
 The first admin user is created from `ADMIN_USERNAME` and `ADMIN_PASSWORD` when the database is initialized. Passwords must be at least 12 characters.
 
+### Reader Accounts and Comments
+
+Readers can register or log in from the site header or directly from the article comment composer. Authenticated readers can:
+
+- update their username, email, and password from the account menu
+- select text in an article to attach a quote to a comment
+- publish comments on article detail pages
+
+Reader sessions are stored in HTTP-only cookies and use the same `JWT_SECRET` as the admin session system.
+
 ### Build
 
 ```bash
@@ -117,11 +129,14 @@ src/
 │   ├── [locale]/          # Locale-routed pages (homepage, article, category, etc.)
 │   ├── admin/             # Admin dashboard (login, management)
 │   ├── api/admin/         # Admin API routes (login, articles, sources, fetch)
+│   ├── api/auth/          # Reader auth/session/profile routes
+│   ├── api/articles/      # Public article interaction routes, including comments
+│   ├── fonts.ts           # next/font Google font configuration
 │   ├── globals.css        # Global styles + Tailwind
 │   └── layout.tsx         # Root layout
 ├── components/
 │   ├── admin/             # Admin UI (Dashboard, ArticlesPanel, SourcesPanel, Editor)
-│   ├── article/           # Article components (Content, ReadingProgress, Share, Related)
+│   ├── article/           # Article components (Content, ReadingProgress, Share, Related, Comments)
 │   ├── home/              # Homepage sections (Ticker, Featured, Categories, Newsletter)
 │   ├── layout/            # Header, Footer
 │   └── pages/             # Page-level content components
@@ -144,11 +159,17 @@ src/
 
 ## Deployment
 
-The project is designed for deployment on:
-- **Vercel** — Frontend (Next.js SSR/ISR)
-- **Railway / Fly.io** — Backend services (if separating crawler/translation)
+The project is designed for deployment on Vercel as a Next.js application.
 
-For a simple deployment, the entire app runs as a single Next.js instance with SQLite.
+Production deployment checklist:
+
+1. Set `JWT_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` in the hosting environment.
+2. Keep `ADMIN_PASSWORD` at least 12 characters long.
+3. Set `WECHAT_RSS_BASE_URL` and `WECHAT_RSS_ADMIN_TOKEN` when connecting to a deployed wechat-rss-lite service.
+4. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
+5. Run `npm run build` before publishing.
+
+The default setup stores content in SQLite through `better-sqlite3`. For durable production data on serverless hosting, mount or provision persistent storage, or move the database layer to a managed service.
 
 ## License
 

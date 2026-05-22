@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import type { Article } from '@/lib/mock-data';
@@ -7,6 +8,7 @@ import { ReadingProgress } from './ReadingProgress';
 import { ShareButtons } from './ShareButtons';
 import { Clock, Calendar, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { formatArticleDate } from '@/lib/format-date';
+import { ArticleComments } from './ArticleComments';
 
 interface Props {
     article: Article;
@@ -15,10 +17,23 @@ interface Props {
 export function ArticleContent({ article }: Props) {
     const home = useTranslations('home');
     const locale = useLocale();
+    const articleBodyRef = useRef<HTMLElement | null>(null);
+    const [selectedQuote, setSelectedQuote] = useState('');
     const bodyIsHtml = /<\/?[a-z][\s\S]*>/i.test(article.body);
 
     // Split body text by newlines into paragraphs
     const paragraphs = article.body ? article.body.split(/\n+/) : [];
+    const articleSlug = article.slug || article.id;
+
+    const captureSelection = () => {
+        const selection = window.getSelection();
+        const selectedText = selection?.toString().replace(/\s+/g, ' ').trim() || '';
+        const anchorNode = selection?.anchorNode;
+        if (!selectedText || !anchorNode || !articleBodyRef.current?.contains(anchorNode)) {
+            return;
+        }
+        setSelectedQuote(selectedText.slice(0, 500));
+    };
 
     return (
         <>
@@ -48,7 +63,12 @@ export function ArticleContent({ article }: Props) {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-6 md:py-8 items-start">
                     
                     {/* LEFT COLUMN (lg:col-span-8): Main Article Content */}
-                    <article className="lg:col-span-8 space-y-6">
+                    <article
+                        ref={articleBodyRef}
+                        onMouseUp={captureSelection}
+                        onTouchEnd={captureSelection}
+                        className="lg:col-span-8 space-y-6"
+                    >
                         
                         {/* Meta Category and Date */}
                         <div className="flex items-center justify-between text-[11px] font-mono-raw text-vintage-text/60 uppercase tracking-widest pb-1 border-b border-vintage-border/50">
@@ -184,6 +204,12 @@ export function ArticleContent({ article }: Props) {
                                     : "“To document and dissect the technical leaps and commercial evolution of Chinese AI founders through an objective, deep global lens, bridging the intelligence pipelines.”"}
                             </p>
                         </div>
+
+                        <ArticleComments
+                            articleSlug={articleSlug}
+                            selectedQuote={selectedQuote}
+                            onClearQuote={() => setSelectedQuote('')}
+                        />
 
                     </aside>
 

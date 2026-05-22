@@ -5,6 +5,21 @@ import { validateFeedUrl } from '@/lib/url-security';
 import { isWechatRssFeedUrl, wechatRssAuthHeaders } from '@/lib/wechat-rss';
 import { insertArticleDrafts } from '@/lib/article-ingest';
 
+type RssSource = {
+    name: string;
+    feed_url: string;
+};
+
+type ParsedRssArticle = {
+    title: string;
+    link: string;
+    description: string;
+    content: string;
+    author: string;
+    pubDate: string;
+    image: string;
+};
+
 /**
  * Fetches articles from a wechat-rss-lite source and stores them in the database.
  * Expects the wechat-rss-lite service to be running and accessible.
@@ -16,14 +31,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { source_id } = await request.json();
+    const { source_id } = await request.json() as { source_id?: unknown };
 
     if (!source_id) {
         return NextResponse.json({ error: 'source_id is required' }, { status: 400 });
     }
+    const sourceId = Number(source_id);
+    if (!Number.isFinite(sourceId)) {
+        return NextResponse.json({ error: 'source_id must be a valid number' }, { status: 400 });
+    }
 
     const db = getDb();
-    const source = db.prepare('SELECT * FROM rss_sources WHERE id = ?').get(source_id) as any;
+    const source = db.prepare<unknown[], RssSource>(
+        'SELECT name, feed_url FROM rss_sources WHERE id = ?'
+    ).get(sourceId);
 
     if (!source) {
         return NextResponse.json({ error: 'Source not found' }, { status: 404 });
@@ -58,7 +79,7 @@ export async function POST(request: NextRequest) {
         const { ingested, skipped } = insertArticleDrafts(
             db,
             articles.map((article) => ({
-                sourceId: source_id,
+                sourceId,
                 sourceUrl: article.link,
                 title: article.title,
                 summary: article.description,
@@ -70,7 +91,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Update last fetched time
-        db.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(source_id);
+        db.prepare('UPDATE rss_sources SET last_fetched_at = datetime(\'now\') WHERE id = ?').run(sourceId);
 
         return NextResponse.json({
             success: true,
@@ -78,9 +99,10 @@ export async function POST(request: NextRequest) {
             ingested,
             skipped,
         });
-    } catch (error: any) {
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(
-            { error: `Failed to fetch source: ${error.message}` },
+            { error: `Failed to fetch source: ${message}` },
             { status: 500 }
         );
     }
@@ -89,16 +111,8 @@ export async function POST(request: NextRequest) {
 /**
  * Simple RSS/XML parser for wechat-rss-lite feeds.
  */
-function parseRssFeed(xml: string): Array<{
-    title: string;
-    link: string;
-    description: string;
-    content: string;
-    author: string;
-    pubDate: string;
-    image: string;
-}> {
-    const items: any[] = [];
+function parseRssFeed(xml: string): ParsedRssArticle[] {
+    const items: ParsedRssArticle[] = [];
 
     // Match all <item> elements
     const itemRegex = /<item>([\s\S]*?)<\/item>/gi;

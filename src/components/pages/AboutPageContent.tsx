@@ -1,10 +1,9 @@
 'use client';
 
-import { useTranslations, useLocale } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { Globe, Users, Zap } from 'lucide-react';
 
 export function AboutPageContent() {
-    const t = useTranslations('nav');
     const locale = useLocale();
 
     return (

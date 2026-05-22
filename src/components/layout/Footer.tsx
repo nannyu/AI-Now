@@ -19,8 +19,13 @@ export function Footer({ year }: FooterProps) {
                 
                 {/* Brand / Editor Intro */}
                 <div className="space-y-3">
-                    <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-cinzel font-black uppercase text-vintage-accent tracking-widest">
+                    <div className="flex items-center gap-2 select-none">
+                        <img
+                            src="/icon.png"
+                            alt="AI闹 Logo"
+                            className="w-5 h-5 object-contain"
+                        />
+                        <span className="text-sm font-noto-serif-sc font-black tracking-widest bg-gradient-to-r from-[#252ef7] to-[#fc82e7] bg-clip-text text-transparent">
                             AI NOW ｜ AI闹
                         </span>
                     </div>

@@ -50,7 +50,7 @@ export function ArticleEditor({ article, onSave, onCancel }: Props) {
 </html>`;
     }, [form.body]);
 
-    const handleChange = (field: keyof Article, value: any) => {
+    const handleChange = <Field extends keyof Article>(field: Field, value: Article[Field]) => {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 

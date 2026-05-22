@@ -11,27 +11,32 @@ interface Props {
 export default async function HomePage({ params }: Props) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'home' });
-    const navT = await getTranslations({ locale, namespace: 'nav' });
     const newsT = await getTranslations({ locale, namespace: 'newsletter' });
 
     const featured = getFeaturedDbArticle();
-    const latest = getLatestDbArticles(6)
+    const latestArticles = getLatestDbArticles(8);
+    const latest = latestArticles
         .filter((article) => !featured || article.id !== featured.id)
         .slice(0, 5);
     const hasPublishedArticles = Boolean(featured) || latest.length > 0;
 
-    const tickerItems = [
-        t('ticker.b1'),
-        t('ticker.b2'),
-        t('ticker.b3'),
-        t('ticker.b4')
-    ];
+    const tickerItems: Array<{ title: string; href?: string }> = latestArticles.length > 0
+        ? latestArticles.map((article) => ({
+            title: article.title,
+            href: `/article/${article.slug}`,
+        }))
+        : [
+            { title: t('ticker.b1') },
+            { title: t('ticker.b2') },
+            { title: t('ticker.b3') },
+            { title: t('ticker.b4') },
+        ];
 
     return (
-        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-6 md:py-8">
+        <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-3 md:py-4">
             
             {/* Header News Ticker (Vintage Editorial Style) */}
-            <div className="w-full bg-vintage-panel border-t border-b border-vintage-border py-1.5 px-3 mb-6 overflow-hidden select-none">
+            <div className="w-full bg-vintage-panel border-t border-b border-vintage-border py-1.5 px-3 mb-4 overflow-hidden select-none">
                 <div className="flex items-center gap-4 text-[10px] font-mono-raw text-vintage-accent uppercase tracking-widest font-bold">
                     <span className="flex items-center gap-1 shrink-0 bg-vintage-accent text-vintage-bg px-1.5 py-0.5 rounded-sm relative z-10">
                         BULLETIN
@@ -39,7 +44,19 @@ export default async function HomePage({ params }: Props) {
                     <div className="flex-1 overflow-hidden relative z-0">
                         <div className="flex gap-12 animate-[ticker-scroll_35s_linear_infinite] whitespace-nowrap">
                             {[...tickerItems, ...tickerItems].map((item, index) => (
-                                <span key={index}>• {item}</span>
+                                <span key={`${item.title}-${index}`}>
+                                    •{' '}
+                                    {item.href ? (
+                                        <Link
+                                            href={item.href}
+                                            className="hover:text-vintage-text hover:underline underline-offset-2 transition-colors"
+                                        >
+                                            {item.title}
+                                        </Link>
+                                    ) : (
+                                        item.title
+                                    )}
+                                </span>
                             ))}
                         </div>
                     </div>
