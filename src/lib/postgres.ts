@@ -24,9 +24,13 @@ function getPool() {
         pool = new Pool({
             connectionString,
             max: 3,
+            // Use SSL for Supabase connections
             ssl: connectionString.includes('supabase.co') || connectionString.includes('pooler.supabase.com')
                 ? { rejectUnauthorized: false }
                 : undefined,
+            // Serverless-friendly: close idle connections quickly
+            idleTimeoutMillis: 20000,
+            connectionTimeoutMillis: 10000,
         });
     }
     return pool;

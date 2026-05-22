@@ -5,27 +5,40 @@ import { hashPassword } from './password';
 import { categories } from './mock-data';
 
 const DB_PATH = process.env.AINOW_DB_PATH
-    || (process.env.VERCEL ? path.join('/tmp', 'ainow.db') : path.join(process.cwd(), 'data', 'ainow.db'));
+  || (process.env.VERCEL ? path.join('/tmp', 'ainow.db') : path.join(process.cwd(), 'data', 'ainow.db'));
 
 let db: Database.Database;
 
+/**
+ * Get the SQLite database instance.
+ * On Vercel with DATABASE_URL set, this should NOT be called — all code paths
+ * should use pgQuery instead. If called accidentally, it will throw.
+ */
 export function getDb(): Database.Database {
-    if (!db) {
-        const dir = path.dirname(DB_PATH);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
+  if (process.env.DATABASE_URL && process.env.VERCEL) {
+    throw new Error(
+      'getDb() was called on Vercel with DATABASE_URL set. ' +
+      'All database access should go through PostgreSQL (pgQuery). ' +
+      'This is a bug — check the calling code path.'
+    );
+  }
 
-        db = new Database(DB_PATH);
-        db.pragma('journal_mode = WAL');
-        db.pragma('foreign_keys = ON');
-        initializeDb(db);
+  if (!db) {
+    const dir = path.dirname(DB_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-    return db;
+
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+    initializeDb(db);
+  }
+  return db;
 }
 
 function initializeDb(db: Database.Database) {
-    db.exec(`
+  db.exec(`
     CREATE TABLE IF NOT EXISTS admin_users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -97,18 +110,18 @@ function initializeDb(db: Database.Database) {
     );
   `);
 
-    const articleColumns = db.prepare('PRAGMA table_info(articles)').all() as Array<{ name: string }>;
-    if (!articleColumns.some((column) => column.name === 'slug')) {
-        db.exec('ALTER TABLE articles ADD COLUMN slug TEXT');
-    }
-    if (!articleColumns.some((column) => column.name === 'deleted_at')) {
-        db.exec('ALTER TABLE articles ADD COLUMN deleted_at TEXT');
-    }
-    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug) WHERE slug IS NOT NULL AND slug != ''");
-    db.exec('CREATE INDEX IF NOT EXISTS idx_article_comments_article_id_created_at ON article_comments(article_id, created_at DESC)');
+  const articleColumns = db.prepare('PRAGMA table_info(articles)').all() as Array<{ name: string }>;
+  if (!articleColumns.some((column) => column.name === 'slug')) {
+    db.exec('ALTER TABLE articles ADD COLUMN slug TEXT');
+  }
+  if (!articleColumns.some((column) => column.name === 'deleted_at')) {
+    db.exec('ALTER TABLE articles ADD COLUMN deleted_at TEXT');
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug) WHERE slug IS NOT NULL AND slug != ''");
+  db.exec('CREATE INDEX IF NOT EXISTS idx_article_comments_article_id_created_at ON article_comments(article_id, created_at DESC)');
 
-    runMigrationOnce(db, 'rss_sources_dedup_v1', () => {
-        db.exec(`
+  runMigrationOnce(db, 'rss_sources_dedup_v1', () => {
+    db.exec(`
       UPDATE articles
       SET source_id = (
         SELECT MIN(keeper.id)
@@ -130,73 +143,73 @@ function initializeDb(db: Database.Database) {
         GROUP BY feed_url
       );
     `);
-    });
+  });
 
-    db.exec(`
+  db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_rss_sources_feed_url
     ON rss_sources(feed_url);
   `);
 
-    runMigrationOnce(db, 'remove_seed_articles_v1', () => {
-        db.exec("DELETE FROM articles WHERE source_url LIKE 'seed:%'");
-    });
+  runMigrationOnce(db, 'remove_seed_articles_v1', () => {
+    db.exec("DELETE FROM articles WHERE source_url LIKE 'seed:%'");
+  });
 
-    db.exec("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= datetime('now', '-30 days')");
+  db.exec("DELETE FROM articles WHERE status = 'trash' AND deleted_at <= datetime('now', '-30 days')");
 
-    restoreWechatPublishDatesFromLocalCache(db);
+  restoreWechatPublishDatesFromLocalCache(db);
 
-    const legacyDefault = db.prepare(
-        'SELECT id FROM admin_users WHERE username = ? AND password_hash = ?'
-    ).get('admin', 'admin123') as { id: number } | undefined;
-    if (legacyDefault) {
-        db.prepare('DELETE FROM admin_users WHERE id = ?').run(legacyDefault.id);
+  const legacyDefault = db.prepare(
+    'SELECT id FROM admin_users WHERE username = ? AND password_hash = ?'
+  ).get('admin', 'admin123') as { id: number } | undefined;
+  if (legacyDefault) {
+    db.prepare('DELETE FROM admin_users WHERE id = ?').run(legacyDefault.id);
+  }
+
+  const adminUsername = process.env.ADMIN_USERNAME;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminUsername && adminPassword) {
+    if (adminPassword.length < 12) {
+      throw new Error('ADMIN_PASSWORD must be at least 12 characters');
     }
 
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (adminUsername && adminPassword) {
-        if (adminPassword.length < 12) {
-            throw new Error('ADMIN_PASSWORD must be at least 12 characters');
-        }
-
-        const adminExists = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(adminUsername);
-        if (!adminExists) {
-            db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(
-                adminUsername,
-                hashPassword(adminPassword)
-            );
-        }
+    const adminExists = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(adminUsername);
+    if (!adminExists) {
+      db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(
+        adminUsername,
+        hashPassword(adminPassword)
+      );
     }
+  }
 
-    const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, slug) VALUES (?, ?)');
-    for (const cat of categories) {
-        insertCategory.run(cat.name, cat.slug);
-    }
+  const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, slug) VALUES (?, ?)');
+  for (const cat of categories) {
+    insertCategory.run(cat.name, cat.slug);
+  }
 
 }
 
 function runMigrationOnce(db: Database.Database, name: string, migrate: () => void) {
-    const applied = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(name);
-    if (applied) return;
+  const applied = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(name);
+  if (applied) return;
 
-    const run = db.transaction(() => {
-        migrate();
-        db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
-    });
-    run();
+  const run = db.transaction(() => {
+    migrate();
+    db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
+  });
+  run();
 }
 
 function restoreWechatPublishDatesFromLocalCache(db: Database.Database) {
-    const cacheDbPath = path.join(process.cwd(), 'services', 'wechat-rss-lite', 'wechat-rss-lite.db');
-    if (!fs.existsSync(cacheDbPath)) return;
+  const cacheDbPath = path.join(process.cwd(), 'services', 'wechat-rss-lite', 'wechat-rss-lite.db');
+  if (!fs.existsSync(cacheDbPath)) return;
 
-    const name = 'restore_wechat_publish_dates_from_local_cache_v1';
-    const applied = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(name);
-    if (applied) return;
+  const name = 'restore_wechat_publish_dates_from_local_cache_v1';
+  const applied = db.prepare('SELECT name FROM schema_migrations WHERE name = ?').get(name);
+  if (applied) return;
 
-    db.prepare('ATTACH DATABASE ? AS wrss').run(cacheDbPath);
-    try {
-        db.exec(`
+  db.prepare('ATTACH DATABASE ? AS wrss').run(cacheDbPath);
+  try {
+    db.exec(`
             UPDATE articles
             SET publish_date = (
                 SELECT wrss.articles.published_at
@@ -212,8 +225,8 @@ function restoreWechatPublishDatesFromLocalCache(db: Database.Database) {
                   AND wrss.articles.published_at IS NOT NULL
               )
         `);
-        db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
-    } finally {
-        db.exec('DETACH DATABASE wrss');
-    }
+    db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
+  } finally {
+    db.exec('DETACH DATABASE wrss');
+  }
 }
