@@ -1,0 +1,12 @@
+{
+  "experimentalServices": {
+    "frontend": {
+      "routePrefix": "/",
+      "framework": "nextjs"
+    },
+    "wechat-rss-lite": {
+      "entrypoint": "services/wechat-rss-lite",
+      "routePrefix": "/_/wechat-rss-lite"
+    }
+  }
+}

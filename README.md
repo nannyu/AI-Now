@@ -159,15 +159,20 @@ src/
 
 ## Deployment
 
-The project is designed for deployment on Vercel as a Next.js application.
+The project is designed for deployment on Vercel as a multi-service app:
+
+- `frontend` serves the Next.js application at `/`
+- `wechat-rss-lite` serves the FastAPI crawler/admin service at `/_/wechat-rss-lite`
 
 Production deployment checklist:
 
 1. Set `JWT_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` in the hosting environment.
 2. Keep `ADMIN_PASSWORD` at least 12 characters long.
-3. Set `WECHAT_RSS_BASE_URL` and `WECHAT_RSS_ADMIN_TOKEN` when connecting to a deployed wechat-rss-lite service.
-4. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
-5. Run `npm run build` before publishing.
+3. Set `ADMIN_API_TOKEN` for the wechat-rss-lite service and set `WECHAT_RSS_ADMIN_TOKEN` in the frontend to the same value.
+4. Set `WECHAT_RSS_BASE_URL` to the deployed service path, for example `https://<project-domain>/_/wechat-rss-lite`.
+5. Set `SITE_URL` for wechat-rss-lite to the same deployed service path so RSS and admin URLs are generated correctly.
+6. Do not enable `ALLOW_PRIVATE_FEED_URLS` in production unless the deployment environment requires it and the network boundary is understood.
+7. Run `npm run build` before publishing.
 
 The default setup stores content in SQLite through `better-sqlite3`. For durable production data on serverless hosting, mount or provision persistent storage, or move the database layer to a managed service.
 
