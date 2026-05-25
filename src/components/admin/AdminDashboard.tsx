@@ -43,7 +43,7 @@ export function AdminDashboard() {
                             <span className="text-white font-bold text-xs">AI</span>
                         </div>
                         <div>
-                            <span className="text-sm font-bold text-neutral-900">AI Roar</span>
+                            <span className="text-sm font-bold text-neutral-900">AI Now</span>
                             <p className="text-xs text-neutral-500">后台管理</p>
                         </div>
                     </div>

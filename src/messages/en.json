@@ -1,6 +1,6 @@
 {
     "site": {
-        "name": "AI Roar",
+        "name": "AI Now",
         "tagline": "Stories of Chinese AI Entrepreneurs, for the World",
         "description": "Discover the most compelling stories of Chinese AI startups - innovation, ambition, and the people building the future."
     },
@@ -65,11 +65,11 @@
         "page": "Page {current} of {total}"
     },
     "footer": {
-        "about": "About AI Roar",
-        "aboutText": "AI Roar is a platform dedicated to showcasing Chinese AI entrepreneurs and their startup journeys to a global audience.",
+        "about": "About AI Now",
+        "aboutText": "AI Now is a platform dedicated to showcasing Chinese AI entrepreneurs and their startup journeys to a global audience.",
         "links": "Quick Links",
         "social": "Follow Us",
-        "copyright": "© {year} AI Roar. All rights reserved.",
+        "copyright": "© {year} AI Now. All rights reserved.",
         "privacy": "Privacy Policy",
         "terms": "Terms of Service"
     }

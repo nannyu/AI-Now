@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         const upstream = await fetch(url, {
             headers: {
                 Referer: 'https://mp.weixin.qq.com/',
-                'User-Agent': 'Mozilla/5.0 (compatible; AI-Roar-ImageProxy/1.0)',
+                'User-Agent': 'Mozilla/5.0 (compatible; AI-Now-ImageProxy/1.0)',
                 Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
             },
             signal: AbortSignal.timeout(15000),

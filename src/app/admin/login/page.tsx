@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
                     <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-600 rounded-xl mb-4">
                         <Lock className="w-6 h-6 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-neutral-900">AI Roar 后台</h1>
+                    <h1 className="text-2xl font-bold text-neutral-900">AI Now 后台</h1>
                     <p className="text-sm text-neutral-500 mt-1">登录后管理网站内容</p>
                 </div>
 

@@ -1,6 +1,6 @@
 {
     "site": {
-        "name": "AI Roar",
+        "name": "AI Now",
         "tagline": "中国AI创业者的故事，面向全球",
         "description": "发现最引人注目的中国AI创业故事——创新、雄心与构建未来的人们。"
     },
@@ -65,11 +65,11 @@
         "page": "第 {current} 页，共 {total} 页"
     },
     "footer": {
-        "about": "关于 AI Roar",
-        "aboutText": "AI Roar 是一个致力于向全球展示中国AI创业者及其创业历程的平台。",
+        "about": "关于 AI Now",
+        "aboutText": "AI Now 是一个致力于向全球展示中国AI创业者及其创业历程的平台。",
         "links": "快速链接",
         "social": "关注我们",
-        "copyright": "© {year} AI Roar. 保留所有权利。",
+        "copyright": "© {year} AI Now. 保留所有权利。",
         "privacy": "隐私政策",
         "terms": "服务条款"
     }
